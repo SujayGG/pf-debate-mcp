@@ -161,9 +161,11 @@ def format_cite(c: dict) -> tuple[str, str, list[str]]:
     if not c.get("url"):
         warnings.append("no URL: the source must be retrievable")
     name = author or publisher or "Unknown"
+    etal = bool(re.search(r"\bet al\.?", name))
+    name = re.sub(r",?\s*\bet al\.?", "", name).strip() or "Unknown"
     first = re.split(r",| and | & |;", name)[0].strip()
     last = first.split()[-1] if 0 < len(first.split()) <= 3 else first
-    if len(re.split(r",| and | & |;", name)) > 1 and author:
+    if author and (etal or len(re.split(r",| and | & |;", name)) > 1):
         last += " et al."
     year = re.search(r"(19|20)(\d{2})", d)
     short = f"{last} {year.group(2) if year else 'n.d.'}"

@@ -71,3 +71,11 @@ def test_warns_on_highlight_not_underlined():
 def test_runs_from_ranges():
     runs = runs_from_ranges("abcdef", [(0, 4)], [(2, 4)])
     assert runs == [("ab", True, False), ("cd", True, True), ("ef", False, False)]
+
+
+def test_short_cite_names():
+    from pf_debate_mcp.cards import format_cite
+    base = {"date": "November 15, 2023", "quals": "q", "url": "u"}
+    assert format_cite({**base, "author": "Abbasi et al."})[0] == "Abbasi et al. 23"
+    assert format_cite({**base, "author": "Jane Smith and Bo Lee"})[0] == "Smith et al. 23"
+    assert format_cite({**base, "author": "U.S. Department of Energy"})[0] == "U.S. Department of Energy 23"
