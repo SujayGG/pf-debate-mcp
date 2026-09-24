@@ -14,7 +14,7 @@ from conftest import PAGES
 
 def test_openalex_mapping_abstract_and_quals(web, monkeypatch):
     query = "quantum computing advances"
-    params = {"search": query, "per-page": 3, "filter": "has_abstract:true",
+    params = {"search": query, "per-page": 3, "filter": "has_abstract:true,from_publication_date:2015-01-01",
               "sort": "relevance_score:desc", "mailto": discovery.MAILTO}
     work = {
         "title": "Quantum Advantage in NISQ Devices",
@@ -104,7 +104,7 @@ def test_one_source_timeout_does_not_lose_the_others(web, monkeypatch):
 
 def test_cache_returns_same_object_without_refetching(web, monkeypatch):
     query = "cache probe query unique"
-    params = {"search": query, "per-page": 2, "filter": "has_abstract:true",
+    params = {"search": query, "per-page": 2, "filter": "has_abstract:true,from_publication_date:2015-01-01",
               "sort": "relevance_score:desc", "mailto": discovery.MAILTO}
     work = {"title": "Cached Paper", "id": "https://openalex.org/W1", "best_oa_location": {},
             "authorships": [], "primary_location": {}, "publication_date": "2024-01-01",
@@ -130,7 +130,7 @@ def test_cache_returns_same_object_without_refetching(web, monkeypatch):
 def test_429_is_retried_once(monkeypatch):
     calls = []
 
-    def fake_get(url, timeout=None, headers=None):
+    def fake_get(url, timeout=None, headers=None, follow_redirects=False):
         calls.append(url)
         req = httpx.Request("GET", url)
         if len(calls) == 1:

@@ -201,7 +201,7 @@ def auto_cut_cards(claim: str, max_new: int = 4) -> dict:
 
     ex = ThreadPoolExecutor(8)
     futures = [ex.submit(try_cut, r) for r in candidates]
-    done, late = wait(futures, timeout=25)  # a student waits at most ~25 s; slow sites are skipped
+    done, late = wait(futures, timeout=20)  # with discovery (<=8 s) a student waits at most ~28 s
     ex.shutdown(wait=False, cancel_futures=True)
     results = [f.result() for f in done] + [{"skipped": "(slow site)", "reason": "timed out"} for _ in late]
     new = sorted((x for x in results if "card" in x and x["score"] >= 0.45), key=lambda x: -x["score"])[:max_new]

@@ -21,7 +21,7 @@ GDELT = "https://api.gdeltproject.org/api/v2/doc/doc"
 GNEWS = "https://news.google.com/rss/search"
 BING = "https://www.bing.com/news/search"
 MAILTO = "pf-debate@users.noreply.github.com"
-TIMEOUT = 15.0  # GDELT is often slow; it runs in parallel with the others  # seconds, per source
+TIMEOUT = 8.0  # seconds per source; sources run in parallel
 _HEADERS = {"User-Agent": "pf-debate-mcp (citable evidence search)"}
 
 _cache = _ByteLRU(20_000_000, ttl=3600)  # (query, kinds, limit) -> {"results", "skipped"}, 1h
@@ -33,10 +33,10 @@ def _url(base: str, params: dict) -> str:
 
 def _get(url: str) -> httpx.Response:
     """GET with one retry on 429, honoring Retry-After (capped at 5s so a lazy server can't stall us)."""
-    r = httpx.get(url, timeout=TIMEOUT, headers=_HEADERS)
+    r = httpx.get(url, timeout=TIMEOUT, headers=_HEADERS, follow_redirects=True)
     if r.status_code == 429:
         time.sleep(min(float(r.headers.get("Retry-After", 1)), 5.0))
-        r = httpx.get(url, timeout=TIMEOUT, headers=_HEADERS)
+        r = httpx.get(url, timeout=TIMEOUT, headers=_HEADERS, follow_redirects=True)
     r.raise_for_status()
     return r
 
@@ -79,7 +79,7 @@ def _map_paper(w: dict) -> dict:
 
 
 def _fetch_papers(query: str, n: int) -> list[dict]:
-    params = {"search": query, "per-page": n, "filter": "has_abstract:true",
+    params = {"search": query, "per-page": n, "filter": "has_abstract:true,from_publication_date:2015-01-01",
               "sort": "relevance_score:desc", "mailto": MAILTO}
     data = _get(_url(OPENALEX, params)).json()
     return [_map_paper(w) for w in data.get("results", [])]
