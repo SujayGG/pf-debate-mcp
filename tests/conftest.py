@@ -38,11 +38,14 @@ class _Handler(BaseHTTPRequestHandler):
             self.end_headers()
             return
         ctype, body = page
-        self.send_response(200)
+        start = 0
+        if rng := self.headers.get("Range"):  # "bytes=N-": enough for resume tests
+            start = int(rng.split("=")[1].split("-")[0])
+        self.send_response(206 if start else 200)
         self.send_header("Content-Type", ctype)
-        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Content-Length", str(len(body) - start))
         self.end_headers()
-        self.wfile.write(body)
+        self.wfile.write(body[start:])
 
     def log_message(self, *args):
         pass

@@ -4,14 +4,26 @@ The dataset is ~4.8M cards across 109 parquet shards (27 GB). The build reads on
 rows/columns it needs straight from Hugging Face, one shard at a time, dedupes by
 bucketId (identical cards read by different teams), and records finished shards so an
 interrupted build resumes where it stopped.
+
+Most users never build: download() fetches the prebuilt library published on Hugging Face.
+
+  current.txt ──names──▶ library-v{N}.db (downloaded)  or  library.db (built from source)
+
+A new version always lands under a new file name and only then does current.txt switch to it,
+so nothing ever replaces a file another connection has open (Windows forbids that).
 """
 
+import gzip
+import hashlib
+import os
 import re
+import shutil
 import sqlite3
 import sys
 import threading
 import time
 import zlib
+from pathlib import Path
 
 import duckdb
 import httpx
@@ -20,7 +32,10 @@ from .cards import runs_from_markup
 from .store import HOME
 
 DATASET = "Yusuf5/OpenCaselist"
-DB_PATH = HOME / "library.db"
+PREBUILT = "https://huggingface.co/datasets/SujayG5/pf-debate-library/resolve/main"
+SCHEMA_VERSION = 1  # bump when the cards/fts layout changes; stored as sqlite user_version
+SOURCE_DB = HOME / "library.db"  # where from-source builds write
+POINTER = HOME / "current.txt"
 PRESETS = {  # (events, min_reads for ld/cx, since year)
     "quick": (["pf"], 5, 2014),
     "full": (["pf", "openev", "ld", "cx"], 5, 2014),
@@ -50,9 +65,35 @@ where (list_contains(?, event) or (event is null and ?))
 """
 
 
-def _connect() -> sqlite3.Connection:
+def db_path() -> Path:
+    """The active library file: whatever current.txt names, else the from-source build."""
+    try:
+        active = HOME / POINTER.read_text(encoding="utf-8").strip()
+    except OSError:
+        return SOURCE_DB
+    return active if active.is_file() else SOURCE_DB
+
+
+def _point(name: str) -> None:
+    tmp = POINTER.with_suffix(".tmp")
+    tmp.write_text(name, encoding="utf-8")
+    os.replace(tmp, POINTER)  # current.txt is never held open, so this is safe on Windows too
+
+
+def _cleanup() -> None:
+    """Delete library versions that are no longer active. A file still open elsewhere is kept for next time."""
+    keep = db_path()
+    for f in HOME.glob("library-v*.db"):
+        if f != keep:
+            try:
+                f.unlink()
+            except OSError:
+                pass
+
+
+def _connect(path: Path | None = None) -> sqlite3.Connection:
     HOME.mkdir(parents=True, exist_ok=True)
-    con = sqlite3.connect(DB_PATH, timeout=60)  # a build may be writing
+    con = sqlite3.connect(path or db_path(), timeout=60)  # a build may be writing
     con.row_factory = sqlite3.Row
     con.execute("pragma journal_mode=wal")  # readers never block the background build (and vice versa)
     con.executescript(_SCHEMA)
@@ -63,9 +104,14 @@ _local = threading.local()  # one reader connection per thread: MCP tools run in
 
 
 def _conn() -> sqlite3.Connection | None:
+    path = db_path()
     con = getattr(_local, "con", None)
-    if con is None and DB_PATH.exists():
-        con = _local.con = _connect()
+    if con is not None and _local.path != path:  # a new version was installed: reopen
+        con.close()
+        con = _local.con = None
+    if con is None and path.exists():
+        con = _local.con = _connect(path)
+        _local.path = path
     return con
 
 
@@ -77,7 +123,8 @@ def _shards() -> list[str]:
 
 def build(events: list[str], min_reads: int, since: int, limit: int | None, log=print) -> None:
     """events: any of pf, ld, cx, openev (camp files). min_reads filters only ld/cx."""
-    con = _connect()
+    con = _connect(SOURCE_DB)
+    con.execute(f"pragma user_version={SCHEMA_VERSION}")
     done = {r[0] for r in con.execute("select name from shards")}
     duck = duckdb.connect()
     duck.execute("SET enable_progress_bar=false")
@@ -127,33 +174,100 @@ def build(events: list[str], min_reads: int, since: int, limit: int | None, log=
     log("Optimizing search index...")
     con.execute("insert into fts(fts) values ('optimize')")
     con.commit()
-    log(f"Done: {inserted} unique cards in {DB_PATH}")
+    _point(SOURCE_DB.name)
+    log(f"Done: {inserted} unique cards in {SOURCE_DB}")
+
+
+def download(log=print) -> None:
+    """Install the prebuilt library: resumable, checksum-verified, switched in only when complete."""
+    manifest = _get(f"{PREBUILT}/manifest.json").json()
+    if manifest["schema"] > SCHEMA_VERSION:
+        raise RuntimeError("The published library needs a newer pf-debate-mcp. Update the app, then try again.")
+    target = HOME / f"library-v{manifest['version']}.db"
+    if db_path() == target:
+        log(f"Already up to date ({target.name}).")
+        return
+    HOME.mkdir(parents=True, exist_ok=True)
+    part = HOME / (manifest["file"] + ".part")
+    for attempt in range(6):
+        have = part.stat().st_size if part.exists() else 0
+        if have >= manifest["size"]:
+            break
+        try:
+            _fetch_range(f"{PREBUILT}/{manifest['file']}", part, have, manifest["size"], log)
+        except (httpx.HTTPError, OSError) as e:
+            log(f"Download interrupted ({type(e).__name__}); resuming in {5 * (attempt + 1)} s...")
+            time.sleep(5 * (attempt + 1))
+    digest = hashlib.sha256()
+    with open(part, "rb") as f:
+        while chunk := f.read(1 << 20):
+            digest.update(chunk)
+    if digest.hexdigest() != manifest["sha256"]:
+        part.unlink()
+        raise RuntimeError("Downloaded library failed its checksum and was deleted. Run build_library again.")
+    log("Unpacking...")
+    tmp = target.with_name(target.name + ".tmp")
+    with gzip.open(part, "rb") as src, open(tmp, "wb") as dst:
+        shutil.copyfileobj(src, dst, 1 << 20)
+    os.replace(tmp, target)  # a brand-new name: nothing has it open
+    _point(target.name)
+    part.unlink()
+    _cleanup()
+    log(f"Done: library v{manifest['version']} installed ({manifest.get('cards', '?')} cards).")
+
+
+def _get(url: str) -> httpx.Response:
+    r = httpx.get(url, follow_redirects=True, timeout=30)
+    r.raise_for_status()
+    return r
+
+
+def _fetch_range(url: str, part: Path, have: int, total: int, log) -> None:
+    headers = {"Range": f"bytes={have}-"} if have else {}
+    with httpx.stream("GET", url, headers=headers, follow_redirects=True, timeout=60) as r:
+        r.raise_for_status()
+        if have and r.status_code != 206:  # server ignored the range: start over
+            have = 0
+        with open(part, "ab" if have else "wb") as f:
+            next_log = have + total // 20
+            for chunk in r.iter_bytes(1 << 20):
+                f.write(chunk)
+                have += len(chunk)
+                if have >= next_log:
+                    log(f"Downloading library: {have * 100 // total}% of {total // 1_000_000} MB")
+                    next_log += total // 20
 
 
 def start_background_build(mode: str) -> str:
-    """Run build() in a thread so chat apps can build the library without a terminal."""
+    """Install or build the library in a thread so chat apps never need a terminal."""
     if _build["running"]:
-        return f"A build is already running: {_build['last']}"
-    events, min_reads, since = PRESETS[mode]
+        return f"Already running: {_build['last']}"
 
     def run():
         _build.update(running=True, last="starting")
+        log = lambda m: _build.update(last=m)  # noqa: E731
         try:
-            build(events, min_reads, since, None, log=lambda m: _build.update(last=m))
+            if mode == "download":
+                download(log=log)
+            else:
+                build(*PRESETS[mode], None, log=log)
         except Exception as e:  # surfaced through status(); rerunning resumes
             _build["last"] = f"FAILED: {e}. Run build_library again to resume."
         finally:
             _build["running"] = False
 
     threading.Thread(target=run, daemon=True).start()
-    return (f"Started the {mode} library build in the background ({', '.join(events)}). "
+    what = "download of the prebuilt library" if mode == "download" else f"{mode} build from source"
+    return (f"Started the {what} in the background. "
             "Check progress with library_status. Search works on whatever is built so far. If the app "
             "closes mid-build, run build_library again and it resumes.")
 
 
 def _ready() -> sqlite3.Connection | None:
     con = _conn()
-    return con if con and con.execute("select 1 from cards limit 1").fetchone() else None
+    if not con or con.execute("pragma user_version").fetchone()[0] > SCHEMA_VERSION:
+        return None  # missing, or made by a newer app version this code can't read
+    return con if con.execute("select 1 from cards limit 1").fetchone() else None
 
 
 def ready() -> bool:
@@ -168,15 +282,16 @@ def status() -> dict:
     build_info = {"build_running": _build["running"], "build_progress": _build["last"]} if _build["last"] else {}
     con = _ready()
     if not con:
-        return {"built": False, "path": str(DB_PATH), **build_info,
-                "fix": "Call the build_library tool (or run `pf-debate-mcp build-library` in a terminal)."}
+        return {"built": False, "path": str(db_path()), **build_info,
+                "fix": "Call the build_library tool (or run `pf-debate-mcp build-library` in a terminal). "
+                       "If a library exists but won't open, update pf-debate-mcp."}
     if _build["running"] or time.time() - _status_cache["at"] > 60:  # full counts take ~1 s on 173k cards
         by_event = dict(con.execute("select event, count(*) from cards group by event").fetchall())
         lo, hi = con.execute("select min(year), max(year) from cards").fetchone()
         shards = con.execute("select count(*) from shards").fetchone()[0]
         _status_cache.update(at=time.time(), value={
             "built": True, "cards": sum(by_event.values()), "by_event": by_event, "years": [lo, hi],
-            "shards_done": shards, "path": str(DB_PATH), "size_mb": round(DB_PATH.stat().st_size / 1e6)})
+            "shards_done": shards, "path": str(db_path()), "size_mb": round(db_path().stat().st_size / 1e6)})
     return {**_status_cache["value"], **build_info}
 
 

@@ -9,27 +9,37 @@ def main() -> None:
     ap = argparse.ArgumentParser(prog="pf-debate-mcp", description="Public Forum debate MCP server")
     sub = ap.add_subparsers(dest="cmd")
     sub.add_parser("serve", help="run the MCP server on stdio (default)")
-    b = sub.add_parser("build-library", help="download and index the OpenCaselist card library (resumable)")
+    b = sub.add_parser("build-library",
+                       help="install the card library (downloads the prebuilt one; resumable)")
+    b.add_argument("--from-source", action="store_true",
+                   help="build from the raw OpenCaselist dataset instead of downloading (hours)")
     b.add_argument("--events", default="pf,openev,ld,cx",
-                   help="comma list of pf, openev (camp files), ld, cx (policy). Default: all")
+                   help="from-source: comma list of pf, openev (camp files), ld, cx (policy). Default: all")
     b.add_argument("--min-reads", type=int, default=5,
-                   help="LD/Policy cards must have been read by at least this many teams (default 5)")
-    b.add_argument("--since", type=int, default=2014, help="skip caselists older than this year")
-    b.add_argument("--limit", type=int, help="stop after N cards (for testing)")
-    b.add_argument("--quick", action="store_true", help="PF cards only (~25k cards, a few minutes)")
-    b.add_argument("--rebuild", action="store_true", help="delete the existing library first")
+                   help="from-source: LD/Policy cards must have been read by at least this many teams")
+    b.add_argument("--since", type=int, default=2014, help="from-source: skip caselists older than this year")
+    b.add_argument("--limit", type=int, help="from-source: stop after N cards (for testing)")
+    b.add_argument("--quick", action="store_true", help="from-source: PF cards only (a few minutes)")
+    b.add_argument("--rebuild", action="store_true", help="from-source: delete the existing build first")
     sub.add_parser("login", help="log in to OpenCaselist with your Tabroom account")
     args = ap.parse_args()
 
     if args.cmd == "build-library":
         from . import library
 
+        log = lambda m: print(m, flush=True)  # noqa: E731
+        if not (args.from_source or args.quick):
+            try:
+                library.download(log=log)
+            except Exception as e:  # network, checksum, or disk problems: all end the command the same way
+                sys.exit(f"Library download failed: {e}\nRerun to resume, or use --from-source.")
+            return
         if args.rebuild:
-            library.DB_PATH.unlink(missing_ok=True)
+            library.SOURCE_DB.unlink(missing_ok=True)
         events = library.PRESETS["quick"][0] if args.quick else [e.strip().lower() for e in args.events.split(",")]
-        print(f"Building {library.DB_PATH} from Hugging Face {library.DATASET} ({', '.join(events)}). "
-              "Safe to stop and rerun: finished shards are skipped.", flush=True)
-        library.build(events, args.min_reads, args.since, args.limit, log=lambda m: print(m, flush=True))
+        log(f"Building {library.SOURCE_DB} from Hugging Face {library.DATASET} ({', '.join(events)}). "
+            "Safe to stop and rerun: finished shards are skipped.")
+        library.build(events, args.min_reads, args.since, args.limit, log=log)
     elif args.cmd == "login":
         from . import caselist
 

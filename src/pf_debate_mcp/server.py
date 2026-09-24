@@ -220,12 +220,13 @@ def library_status() -> dict:
 
 
 @mcp.tool()
-def build_library(mode: str = "quick") -> str:
-    """Download and index the card library in the background (one time; resumable).
-    mode "quick": PF cards only (~6-8k cards, minutes). mode "full": PF + camp OpenEv files + widely read
-    LD/Policy cards (~170k cards incl. most big-impact cards, a few hours, ~0.8 GB). Ask before starting "full"."""
-    if mode not in library.PRESETS:
-        raise ToolError(f"mode must be one of {list(library.PRESETS)}")
+def build_library(mode: str = "download") -> str:
+    """Install the card library in the background (one time; resumable; progress via library_status).
+    mode "download" (default): the prebuilt library (~170k cards incl. the most-read PF, LD, Policy and camp
+    cards; a few minutes). "quick" / "full": build from the raw dataset instead (PF only in minutes, or
+    everything in a few hours)."""
+    if mode != "download" and mode not in library.PRESETS:
+        raise ToolError(f"mode must be 'download' or one of {list(library.PRESETS)}")
     return library.start_background_build(mode)
 
 
