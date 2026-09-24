@@ -10,3 +10,8 @@ scripts/
 **/__pycache__/
 .pytest_cache/
 chat/
+deploy/
+.serena/
+.playwright-mcp/
+.claude/
+TODOS.md

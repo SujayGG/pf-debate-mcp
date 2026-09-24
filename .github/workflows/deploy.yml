@@ -1,6 +1,7 @@
 name: deploy
-# On a version tag: test, push the Space (backend), deploy the Worker (front door), then smoke-test.
-# Needs repo secrets: HF_TOKEN (write), CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID. See docs/hosting.md.
+# On a version tag: test, deploy the Worker (front door) if a CLOUDFLARE_API_TOKEN secret exists, then smoke-test.
+# The backend runs on the maintainer's PC behind a Cloudflare Tunnel (docs/hosting.md); update it with
+# `uv tool install --force --from <repo> pf-debate-mcp` and restart run.cmd.
 on:
   push:
     tags: ["v*"]
@@ -19,26 +20,8 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --locked && uv run pytest -q
 
-  space:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with: { ref: "${{ inputs.ref || github.ref }}" }
-      - name: Push deploy/space to the Hugging Face Space
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          REF: ${{ inputs.ref || github.ref_name }}
-        run: |
-          git clone "https://user:${HF_TOKEN}@huggingface.co/spaces/SujayG5/pf-debate" space
-          cp deploy/space/Dockerfile deploy/space/README.md space/
-          sed -i "s/^ARG REF=.*/ARG REF=${REF}/" space/Dockerfile
-          cd space
-          git config user.email "actions@github.com" && git config user.name "github-actions"
-          git add -A && (git diff --cached --quiet || git commit -m "deploy ${REF}") && git push
-
   worker:
-    needs: space
+    needs: test
     runs-on: ubuntu-latest
     env:
       HAS_CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}

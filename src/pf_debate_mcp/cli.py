@@ -29,7 +29,7 @@ def main() -> None:
     h.add_argument("--public-url", default=os.environ.get("PUBLIC_URL", "https://debate.peshcompsci.org"),
                    help="base URL students use; download links are built from it")
     h.add_argument("--allowed-host", action="append", dest="allowed_hosts",
-                   help="Host header to accept (repeatable), e.g. debate.peshcompsci.org and the *.hf.space name")
+                   help="Host header to accept (repeatable), e.g. debate.peshcompsci.org plus the host's own name")
     args = ap.parse_args()
 
     if args.cmd == "serve-http":

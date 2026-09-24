@@ -1,4 +1,4 @@
-"""The free public server: `pf-debate-mcp serve-http` (run on a Hugging Face Space behind Cloudflare).
+"""The free public server: `pf-debate-mcp serve-http`, reached through Cloudflare (see docs/hosting.md).
 
 Everything hosted-specific is switched on here, once, at startup:
   - stateless streamable HTTP (no MCP sessions: nothing to expire, any restart is harmless)

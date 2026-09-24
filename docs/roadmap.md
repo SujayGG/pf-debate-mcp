@@ -106,6 +106,9 @@ Rejected: all-Cloudflare (Workers free = 10 ms CPU per request, which can't pars
 ### Not doing
 Paid APIs or search keys. Our own LLM calls (generation always runs on the user's AI, which is how cost stays $0). Hosting anyone's Tabroom credentials. An all-Cloudflare rewrite. Supabase.
 
+## Hosting update (2026-09-24, during deploy)
+Hugging Face now requires PRO ($9/mo) for Docker Spaces, so the free backend instead runs on the maintainer's PC through a Cloudflare Tunnel, which the Worker reaches through a Workers VPC binding (still $0, no public origin). The plan is to move it to an Oracle Always Free VM later; students keep the same URL. The HF Space references below describe the original plan. The live setup is in docs/hosting.md.
+
 ## Engineering review decisions (/plan-eng-review, 2026-09-24)
 | # | Decision |
 |---|---|
@@ -156,19 +159,19 @@ Synthesized from this review's findings. Check off each item as it ships.
   - Surfaced by: 4A.
   - Files: `cards.py`, `server.py`
   - Verify: `pytest tests/test_cards.py`
-- [ ] **T4 (P1, human: ~1d / CC: ~20min)**: library: prebuilt download (resume, checksum, atomic, schema_version) and publish v1 to HF
+- [x] **T4 (P1, human: ~1d / CC: ~20min)**: library: prebuilt download (resume, checksum, atomic, schema_version) and publish v1 to HF
   - Surfaced by: 4B and T4.
   - Files: `library.py`, `cli.py`, `scripts/publish_library.py`
   - Verify: an interrupted/corrupt download test; a fresh-HOME install in under 5 min.
-- [ ] **T5 (P1, human: ~1d / CC: ~25min)**: server: `--http` mode, Settings object, no caselist/build tools, stateless HMAC-signed cards
+- [x] **T5 (P1, human: ~1d / CC: ~25min)**: server: `--http` mode, Settings object, no caselist/build tools, stateless HMAC-signed cards
   - Surfaced by: 5A and T1.
   - Files: `cli.py`, `server.py`, `cards.py`, `store.py`
   - Verify: integration test over streamable HTTP; a tampered signature is rejected.
-- [ ] **T6 (P1, human: ~1d / CC: ~25min)**: sources: SSRF guard plus budgets
+- [x] **T6 (P1, human: ~1d / CC: ~25min)**: sources: SSRF guard plus budgets
   - Surfaced by: 3A and T5.
   - Files: `sources.py`, `server.py`
   - Verify: tests for 127.0.0.1, 169.254.169.254, redirect-to-internal, 20 MB body and budget exhaustion.
-- [ ] **T7 (P1, human: ~2h / CC: ~10min)**: untrusted-text labeling and docx caps
+- [x] **T7 (P1, human: ~2h / CC: ~10min)**: untrusted-text labeling and docx caps
   - Surfaced by: 3B and 3C.
   - Files: `server.py`, `docx_io.py`
   - Verify: zip-bomb fixture test; the `<source_text>` wrapper is present.
@@ -176,15 +179,15 @@ Synthesized from this review's findings. Check off each item as it ships.
   - Surfaced by: 6A.
   - Files: `tests/*`, `.github/workflows/ci.yml`
   - Verify: CI green on push.
-- [ ] **T9 (P1, human: ~1d / CC: ~30min)**: deploy: HF Space Dockerfile, Cloudflare Worker proxy (BACKEND_URL, health-gated fast failure, cron), tag deploy, runbook
+- [x] **T9 (P1, human: ~1d / CC: ~30min)**: deploy: HF Space Dockerfile, Cloudflare Worker proxy (BACKEND_URL, health-gated fast failure, cron), tag deploy, runbook
   - Surfaced by: 1B, 1C, 2B and 9A.
   - Files: `deploy/space/`, `deploy/worker/`, `.github/workflows/deploy.yml`, `docs/hosting.md`
   - Verify: post-deploy smoke; a cold-start message appears within 8 s.
-- [ ] **T10 (P1, human: ~4h / CC: ~20min)**: observability
+- [x] **T10 (P1, human: ~4h / CC: ~20min)**: observability
   - Surfaced by: 8A and 6B.
   - Files: `server.py`, `deploy/worker/`, `.github/workflows/nightly.yml`
   - Verify: /health and /stats; the nightly job opens an issue on a forced failure.
-- [ ] **T11 (P2, human: ~1d / CC: ~30min)**: landing page, then /plan-design-review
+- [x] **T11 (P2, human: ~1d / CC: ~30min)**: landing page, then /plan-design-review
   - Surfaced by: 11A.
   - Files: `deploy/worker/landing.html`
   - Verify: works on mobile; keyboard and screen-reader pass.
@@ -192,7 +195,7 @@ Synthesized from this review's findings. Check off each item as it ships.
   - Surfaced by: roadmap item 3 and T6.
   - Files: `server.py`, `cards.py`, `docx_io.py`
   - Verify: get_card is about 4× smaller; the gdocs paste keeps its formatting.
-- [ ] **T13 (P2, human: ~4h / CC: ~20min)**: pf-practice skill and scripts/eval_knowledge.md
+- [x] **T13 (P2, human: ~4h / CC: ~20min)**: pf-practice skill and scripts/eval_knowledge.md
   - Surfaced by: E4 and 6B.
   - Files: `skills/pf-practice/SKILL.md`, `scripts/eval_knowledge.md`
   - Verify: manual knowledge eval.

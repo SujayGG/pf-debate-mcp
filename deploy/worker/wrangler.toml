@@ -5,8 +5,15 @@ compatibility_date = "2026-09-01"
 # The public URL students paste into their AI app. Requires the peshcompsci.org zone on this Cloudflare account.
 routes = [{ pattern = "debate.peshcompsci.org", custom_domain = true }]
 
+# Backend on this PC through Cloudflare Tunnel "pf-debate" (Workers VPC service). Remove this block and set
+# BACKEND_URL to move the backend to a public host (e.g. an Oracle Always Free VM); students keep the same URL.
+[[vpc_services]]
+binding = "BACKEND"
+service_id = "01a0d4cc-89fb-7dc0-aa4a-b5f8f8bd8281"
+remote = true
+
 [vars]
-BACKEND_URL = "https://sujayg5-pf-debate.hf.space"  # swap here to move the backend; students keep the same URL
+BACKEND_URL = ""  # used only when the BACKEND binding above is absent
 KILL_SWITCH = "off"                                  # "on" pauses tool traffic (landing page stays up)
 
 [triggers]

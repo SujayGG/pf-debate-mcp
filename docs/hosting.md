@@ -1,46 +1,53 @@
 # Hosting runbook: the free public server
 
 ```
-student's AI app ──▶ debate.peshcompsci.org (Cloudflare Worker, deploy/worker)
-                         ├─ /            landing page
-                         ├─ /mcp         health-gated proxy ─────────┐
-                         └─ /health /stats /files/…  proxy ──────────┤
-                                                                     ▼
-                 Hugging Face Space SujayG5/pf-debate (deploy/space, Docker, free CPU)
-                 `pf-debate-mcp serve-http`, ONE process, stateless HTTP
-                 library downloaded at boot from dataset SujayG5/pf-debate-library
+student ──▶ debate.peshcompsci.org (Cloudflare Worker, deploy/worker: landing, /app, proxy)
+                 │  Workers VPC binding "BACKEND" (no public origin, no open ports)
+                 ▼
+          Cloudflare Tunnel "pf-debate" (cloudflared on the maintainer's PC)
+                 ▼
+          pf-debate-mcp serve-http on 127.0.0.1:7860 (ONE process, stateless HTTP)
+          library: ~/.pf-debate (download: SujayG5/pf-debate-library on Hugging Face)
 ```
-Cost: $0. This uses the Cloudflare Workers free plan, the Hugging Face Spaces free CPU tier, and free GitHub Actions.
+Cost: $0 (Cloudflare Workers free plan, Workers VPC, Cloudflare Tunnel, Hugging Face datasets, GitHub Actions).
+Hugging Face now charges for Docker Spaces, so `deploy/space` is kept only as a ready-made image for a future
+host (for example an Oracle Always Free VM or Cloud Run).
 
-## One-time setup
-1. **Hugging Face:**
-   - Create a write token.
-   - Create the Space `SujayG5/pf-debate` (SDK: Docker, hardware: CPU basic, visibility: public).
-   - Publish the library once: `hf auth login`, then `uv run python scripts/publish_library.py --version 1 --upload`.
-2. **Cloudflare:**
-   - The `peshcompsci.org` zone must be on the account.
-   - Create an API token with the "Edit Cloudflare Workers" template, scoped to the account and the zone.
-   - Note the account ID.
-3. **GitHub repo secrets:** add `HF_TOKEN`, `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (Settings → Secrets and variables → Actions).
-4. Push a version tag (`git tag v0.4.0 && git push --tags`). The `deploy` workflow tests, pushes the Space, deploys the Worker, and smoke-tests `https://debate.peshcompsci.org`.
+## Where things live on the backend PC
+- `~/pf-debate-runtime/run.cmd` starts the server and the tunnel, and restarts either if it exits. Logs go to `server.log` and `tunnel.log` in the same folder.
+- `~/pf-debate-runtime/tunnel.token` is the tunnel's credential (keep it private). `cloudflared.exe` is the portable connector.
+- `~/pf-debate-runtime/keys.cmd` (optional) holds the free-AI keys, e.g. `set CEREBRAS_API_KEY=...` and `set GROQ_API_KEY=...`.
+- The Startup-folder entry `pf-debate.vbs` launches `run.cmd` hidden at logon.
+- **The site is up only while this PC is on and awake.** Set it to never sleep while plugged in.
+
+## Updating the backend
+```
+uv tool install --force --from C:/Users/sujay/pf-debate-mcp pf-debate-mcp    # frozen copy of the current code
+taskkill /F /IM pf-debate-mcp.exe                                             # run.cmd restarts it within 10 s
+```
+Worker changes: `cd deploy/worker && npx wrangler deploy`. Pushing a tag also redeploys it, if the `CLOUDFLARE_API_TOKEN` secret is set.
+
+## Moving the backend (e.g. to Oracle Always Free)
+1. On the new host, run `pf-debate-mcp serve-http --public-url https://debate.peshcompsci.org --allowed-host debate.peshcompsci.org --allowed-host <its-hostname>`. `deploy/space/Dockerfile` also works.
+2. Either run `cloudflared tunnel run --token-file tunnel.token` there, so no Worker change is needed; or delete the `[[vpc_services]]` block in wrangler.toml, set `BACKEND_URL`, and run `npx wrangler deploy`.
+3. Remove the Startup entry on this PC.
 
 ## Routine operations
 | Task | How |
 |---|---|
-| Deploy | Push a tag `vX.Y.Z` (bump the versions in pyproject.toml, manifest.json and .claude-plugin/plugin.json first). |
-| Roll back | Actions → deploy → Run workflow with an older tag, or run `npx wrangler rollback` in deploy/worker for the Worker alone. |
+| Deploy | Bump the versions in pyproject.toml, manifest.json and .claude-plugin/plugin.json. Push a tag `vX.Y.Z` (this runs tests, the Worker deploy if a token is set, and a smoke test). Then update the backend (above). |
+| Roll back | Worker: `npx wrangler rollback` in deploy/worker. Backend: `uv tool install --force "pf-debate-mcp @ git+https://github.com/SujayGG/pf-debate-mcp@<older tag>"`, then kill pf-debate-mcp.exe. |
 | Pause tool traffic | Set `KILL_SWITCH = "on"` in deploy/worker/wrangler.toml and run `npx wrangler deploy`. The landing page stays up. |
-| Move the backend | Change `BACKEND_URL` in wrangler.toml and deploy the Worker. Students keep the same URL. The new host must run `pf-debate-mcp serve-http` with `ALLOWED_HOSTS` including its own host name. |
-| New library version | Run `scripts/publish_library.py --version N+1 --upload`. Spaces pick it up on the next restart; local users on `build_library`. |
+
+| New library version | Run `scripts/publish_library.py --version N+1 --upload`. Then run `pf-debate-mcp build-library` on the backend PC and restart the server. Local users update with `build_library`. |
 | Rotate tokens | Create a new HF/Cloudflare token, update the repo secret, and revoke the old one. |
 | Check usage | Open `https://debate.peshcompsci.org/stats` (counts only; no queries or content are ever logged). |
 
 ## When the nightly check opens an issue
 1. Open `https://debate.peshcompsci.org/health`.
-   - **503 "waking up"**: the Space was asleep. Wait 2 minutes and recheck. If it happens often, check that the Worker cron is running (Cloudflare dashboard → Workers → pf-debate → Triggers).
-   - **Space error**: open the Space logs on Hugging Face.
-     - If the library download failed, restart the Space.
-     - If the dataset is missing, re-run the publish step.
+   - **"Waking up"**: the backend PC is off, asleep, or offline. Wake it. `run.cmd` starts at logon.
+   - **Tunnel down**: check `tunnel.log` for "Registered tunnel connection" lines.
+   - **Server down**: check `server.log`.
 2. `/stats` shows `calls_today` at a budget in `metrics.BUDGETS`: someone may be abusing it. Either raise the budget (if the CPU copes), turn on the kill switch, or start the sign-in TODO.
 
 ## Rules that must not change

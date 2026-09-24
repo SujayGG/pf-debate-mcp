@@ -10,3 +10,4 @@ wheels/
 .venv
 .serena/
 deploy/worker/.wrangler/
+.claude/

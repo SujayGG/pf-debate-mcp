@@ -15,12 +15,19 @@ import LANDING from "./landing.html";
 import APP from "./app.html";
 
 const HEALTH_TTL_MS = 60_000;
+
+// Reach the backend: through Workers VPC (a private Cloudflare Tunnel binding, no public origin) when the
+// BACKEND binding exists, otherwise over the internet at BACKEND_URL. Switching hosts is config only.
+function backendFetch(env, pathAndQuery, init) {
+  if (env.BACKEND) return env.BACKEND.fetch(new Request("http://127.0.0.1:7860" + pathAndQuery, init));
+  return fetch(new Request(new URL(pathAndQuery, env.BACKEND_URL), init));
+}
 let lastHealthy = 0; // per-isolate cache: skip the health probe when the backend answered recently
 
 async function backendHealthy(env) {
   if (Date.now() - lastHealthy < HEALTH_TTL_MS) return true;
   try {
-    const r = await fetch(new URL("/health", env.BACKEND_URL), { signal: AbortSignal.timeout(8000) });
+    const r = await backendFetch(env, "/health", { signal: AbortSignal.timeout(8000) });
     if (r.ok) lastHealthy = Date.now();
     return r.ok;
   } catch {
@@ -55,7 +62,7 @@ export default {
           + "or install it locally: github.com/SujayGG/pf-debate-mcp", 503);
       }
       if (!(await backendHealthy(env))) {
-        ctx.waitUntil(fetch(new URL("/health", env.BACKEND_URL)).catch(() => {})); // nudge it awake
+        ctx.waitUntil(backendFetch(env, "/health").catch(() => {})); // nudge it awake
         return mcpError(request, "The free pf-debate server is waking up (about 1 minute). "
           + "Please try again shortly.", 503);
       }
@@ -65,14 +72,15 @@ export default {
     if (!proxied) {
       return new Response("Not found", { status: 404 });
     }
-    const target = new URL(url.pathname + url.search, env.BACKEND_URL);
-    const forwarded = new Request(target, request); // streams request and response bodies (SSE included)
+    const headers = new Headers(request.headers);
     // The web app's per-IP limits need the student's IP; connector traffic arrives from AI providers instead.
-    forwarded.headers.set("cf-connecting-ip", request.headers.get("cf-connecting-ip") || "");
-    return fetch(forwarded);
+    headers.set("cf-connecting-ip", request.headers.get("cf-connecting-ip") || "");
+    return backendFetch(env, url.pathname + url.search, {  // streams bodies both ways (SSE included)
+      method: request.method, headers, body: request.body, redirect: "manual",
+    });
   },
 
   async scheduled(_event, env, ctx) {
-    ctx.waitUntil(fetch(new URL("/health", env.BACKEND_URL)).catch(() => {}));
+    ctx.waitUntil(backendFetch(env, "/health").catch(() => {}));
   },
 };
