@@ -40,10 +40,16 @@ jobs:
   worker:
     needs: space
     runs-on: ubuntu-latest
+    env:
+      HAS_CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
         with: { ref: "${{ inputs.ref || github.ref }}" }
+      - name: No Cloudflare token (Worker was deployed by hand with `npx wrangler deploy`)
+        if: env.HAS_CF_TOKEN != 'true'
+        run: echo "Skipping Worker deploy; add a CLOUDFLARE_API_TOKEN secret to automate it."
       - uses: cloudflare/wrangler-action@v3
+        if: env.HAS_CF_TOKEN == 'true'
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
