@@ -7,6 +7,7 @@ a source that fails or times out is reported in "skipped" rather than losing the
 
 import concurrent.futures as cf
 import json
+import threading
 import time
 from email.utils import parsedate_to_datetime
 from urllib.parse import urlencode
@@ -94,8 +95,19 @@ def _map_gdelt(a: dict) -> dict:
             "date": date, "source": a.get("domain"), "snippet": ""}
 
 
+_gdelt_lock = threading.Lock()
+_gdelt_last = [0.0]
+GDELT_GAP = 5.2  # GDELT allows one request per 5 s per IP; everyone on this server shares that pace
+
+
 def _fetch_gdelt(query: str, n: int) -> list[dict]:
-    params = {"query": query, "mode": "ArtList", "format": "json", "maxrecords": n, "sort": "DateDesc"}
+    with _gdelt_lock:  # queue requests instead of tripping GDELT's 429
+        wait = _gdelt_last[0] + GDELT_GAP - time.time()
+        if wait > 0:
+            time.sleep(wait)
+        _gdelt_last[0] = time.time()
+    params = {"query": f"{query} sourcelang:english", "mode": "ArtList", "format": "json", "maxrecords": n,
+              "sort": "HybridRel"}
     r = _get(_url(GDELT, params))
     try:
         data = r.json()

@@ -82,7 +82,8 @@ def test_gdelt_failure_falls_back_to_google_news(web, monkeypatch):
 
 def test_one_source_timeout_does_not_lose_the_others(web, monkeypatch):
     query = "fusion breakthrough claims"
-    gdelt_params = {"query": query, "mode": "ArtList", "format": "json", "maxrecords": 4, "sort": "DateDesc"}
+    gdelt_params = {"query": f"{query} sourcelang:english", "mode": "ArtList", "format": "json", "maxrecords": 4,
+                    "sort": "HybridRel"}
     articles = {"articles": [
         {"title": "A", "url": "https://n.com/a", "seendate": "20250101T000000Z", "domain": "n.com"},
         {"title": "B", "url": "https://n.com/b", "seendate": "20250102T000000Z", "domain": "n.com"},
@@ -147,3 +148,4 @@ def test_429_is_retried_once(monkeypatch):
 @pytest.fixture(autouse=True)
 def _no_real_bing(web, monkeypatch):
     monkeypatch.setattr(discovery, "BING", f"{web}/no-bing")  # 404 locally: tests never hit the real Bing
+    monkeypatch.setattr(discovery, "GDELT_GAP", 0)  # no pacing delay in tests
