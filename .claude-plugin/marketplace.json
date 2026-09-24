@@ -1,0 +1,11 @@
+{
+  "name": "pf-debate",
+  "owner": { "name": "SujayGG" },
+  "plugins": [
+    {
+      "name": "pf-debate",
+      "source": "./",
+      "description": "Public Forum debate partner: card library, verbatim card cutting, caselist scouting, Verbatim .docx export."
+    }
+  ]
+}

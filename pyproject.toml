@@ -1,0 +1,30 @@
+[project]
+name = "pf-debate-mcp"
+version = "0.1.0"
+description = "Public Forum debate partner for any MCP agent: card library, verbatim card cutting, OpenCaselist, Verbatim .docx export"
+readme = "README.md"
+license = "MIT"
+authors = [
+    { name = "SujayGG", email = "sujaygonchigar@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "duckdb>=1.5.5",
+    "httpx>=0.28.1",
+    "mcp>=2.2.0",
+    "pypdf>=6.19.0",
+    "python-docx>=1.2.0",
+    "trafilatura>=2.2.0",
+]
+
+[project.scripts]
+pf-debate-mcp = "pf_debate_mcp.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.12.3,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
