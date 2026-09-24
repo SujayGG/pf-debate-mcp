@@ -1,0 +1,12 @@
+.venv/
+.git/
+.github/
+dist/
+tests/
+docs/
+scripts/
+.claude-plugin/
+.mcp.json
+**/__pycache__/
+.pytest_cache/
+chat/

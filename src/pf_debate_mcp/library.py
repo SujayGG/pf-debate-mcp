@@ -9,6 +9,7 @@ interrupted build resumes where it stopped.
 import re
 import sqlite3
 import sys
+import threading
 import time
 import zlib
 
@@ -20,6 +21,11 @@ from .store import HOME
 
 DATASET = "Yusuf5/OpenCaselist"
 DB_PATH = HOME / "library.db"
+PRESETS = {  # (events, min_reads for ld/cx, since year)
+    "quick": (["pf"], 5, 2014),
+    "full": (["pf", "openev", "ld", "cx"], 5, 2014),
+}
+_build = {"running": False, "last": None}  # in-process background build (the build_library tool)
 
 _SCHEMA = """
 create table if not exists cards(
@@ -45,7 +51,7 @@ where (list_contains(?, event) or (event is null and ?))
 
 def _connect() -> sqlite3.Connection:
     HOME.mkdir(parents=True, exist_ok=True)
-    con = sqlite3.connect(DB_PATH, check_same_thread=False)
+    con = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=60)  # a build may be writing
     con.row_factory = sqlite3.Row
     con.executescript(_SCHEMA)
     return con
@@ -112,6 +118,27 @@ def build(events: list[str], min_reads: int, since: int, limit: int | None, log=
     log(f"Done: {inserted} unique cards in {DB_PATH}")
 
 
+def start_background_build(mode: str) -> str:
+    """Run build() in a thread so chat apps can build the library without a terminal."""
+    if _build["running"]:
+        return f"A build is already running: {_build['last']}"
+    events, min_reads, since = PRESETS[mode]
+
+    def run():
+        _build.update(running=True, last="starting")
+        try:
+            build(events, min_reads, since, None, log=lambda m: _build.update(last=m))
+        except Exception as e:  # surfaced through status(); rerunning resumes
+            _build["last"] = f"FAILED: {e}. Run build_library again to resume."
+        finally:
+            _build["running"] = False
+
+    threading.Thread(target=run, daemon=True).start()
+    return (f"Started the {mode} library build in the background ({', '.join(events)}). "
+            "Check progress with library_status. Search works on whatever is built so far. If the app "
+            "closes mid-build, run build_library again and it resumes.")
+
+
 def _ready() -> sqlite3.Connection | None:
     if not DB_PATH.exists():
         return None
@@ -120,15 +147,17 @@ def _ready() -> sqlite3.Connection | None:
 
 
 def status() -> dict:
+    build_info = {"build_running": _build["running"], "build_progress": _build["last"]} if _build["last"] else {}
     con = _ready()
     if not con:
-        return {"built": False, "path": str(DB_PATH),
-                "fix": "Run once in a terminal: uvx pf-debate-mcp build-library"}
+        return {"built": False, "path": str(DB_PATH), **build_info,
+                "fix": "Call the build_library tool (or run `pf-debate-mcp build-library` in a terminal)."}
     by_event = dict(con.execute("select event, count(*) from cards group by event").fetchall())
     lo, hi = con.execute("select min(year), max(year) from cards").fetchone()
     shards = con.execute("select count(*) from shards").fetchone()[0]
     return {"built": True, "cards": sum(by_event.values()), "by_event": by_event, "years": [lo, hi],
-            "shards_done": shards, "path": str(DB_PATH), "size_mb": round(DB_PATH.stat().st_size / 1e6)}
+            "shards_done": shards, "path": str(DB_PATH), "size_mb": round(DB_PATH.stat().st_size / 1e6),
+            **build_info}
 
 
 def _match(query: str, op: str) -> str:

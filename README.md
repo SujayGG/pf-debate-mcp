@@ -1,6 +1,6 @@
 # pf-debate-mcp
 
-A Public Forum debate partner for your own AI agent (Claude Code, Claude Desktop, Cursor, Codex, or any MCP host). Ask it things like:
+A Public Forum debate partner for the AI you already use. Ask it things like:
 
 - "Make me a neg case on the Sep/Oct topic centered around a nuclear impact."
 - "Cut me a card that data centers raise residential electricity bills."
@@ -8,23 +8,65 @@ A Public Forum debate partner for your own AI agent (Claude Code, Claude Desktop
 - "They dropped our link turn. Write my summary."
 - "Scout Lexington AB on the caselist."
 
-Your agent does the thinking on **your** plan, so there are no per-site token limits. This package gives it:
+It knows PF jargon, speech times, tactics, weighing and the standard impact chains. It never makes up evidence.
 
+## Pick your app (no terminal needed)
+
+| App | What you get | Setup |
+|---|---|---|
+| **Claude Desktop** (Mac/Windows) | Everything: the card library, verbatim card cutting, caselist scouting, Word speech docs | [One-click install](#claude-desktop-one-click) |
+| **Claude.ai** (web/mobile) | PF knowledge + card cutting with Claude's web search | [Upload a skill](#claudeai-web) |
+| **ChatGPT** | PF knowledge + card cutting with ChatGPT's web search | [Make a GPT or Project](#chatgpt) |
+| **Gemini** | PF knowledge + card cutting with Gemini's web search | [Make a Gem](#gemini) |
+| Claude Code, Cursor, other MCP apps | Everything | [Developer install](#developer-install) |
+
+**What "full tools" adds.** The Claude Desktop and developer installs give your AI a local library of already-cut cards and a card cutter. The cutter checks every word against the real article and **rejects anything that isn't verbatim**, so fabricated evidence can't slip in. Web chat apps can't run local tools. There, the AI cuts cards from pages it opens, and you should check each card against its link before reading it.
+
+All downloads are on the **[latest release page](https://github.com/SujayGG/pf-debate-mcp/releases/latest)**.
+
+### Claude Desktop (one click)
+1. Install [Claude Desktop](https://claude.ai/download) if you don't have it.
+2. Download **[pf-debate.mcpb](https://github.com/SujayGG/pf-debate-mcp/releases/latest/download/pf-debate.mcpb)**.
+3. Double-click the file (or drag it into Claude Desktop → Settings → Extensions), then click **Install**.
+   - The Tabroom email and password fields are optional. They are only for OpenCaselist scouting, and Claude Desktop stores them securely.
+4. In a new chat, say: **"Build the quick card library."** This takes a few minutes and runs in the background. Later you can say "build the full card library" for about 500k cards (a few hours, 1–2 GB; it resumes if interrupted).
+5. Start prepping. Speech docs are saved to `Documents/pf-debate/`.
+
+### Claude.ai (web)
+1. Download **[pf-debate-skill.zip](https://github.com/SujayGG/pf-debate-mcp/releases/latest/download/pf-debate-skill.zip)**.
+2. On claude.ai: **Settings → Capabilities**. Turn on **Code execution** (skills need it) and **Web search**, then under **Skills** click **Upload skill** and choose the zip.
+3. Ask any PF question. Claude loads the skill automatically.
+
+Alternative: create a **Project**, paste [instructions.md](https://github.com/SujayGG/pf-debate-mcp/releases/latest/download/instructions.md) into the project instructions, and upload [pf-debate-guide.md](https://github.com/SujayGG/pf-debate-mcp/releases/latest/download/pf-debate-guide.md) as project knowledge.
+
+### ChatGPT
+Download **[instructions.md](https://github.com/SujayGG/pf-debate-mcp/releases/latest/download/instructions.md)** and **[pf-debate-guide.md](https://github.com/SujayGG/pf-debate-mcp/releases/latest/download/pf-debate-guide.md)**. Then use either option:
+- **Custom GPT** (needs a paid plan to create; anyone can use a shared one):
+  1. Explore GPTs → **Create** → **Configure**.
+  2. Paste instructions.md into **Instructions** and upload pf-debate-guide.md under **Knowledge**.
+  3. Turn on **Web Search**.
+  4. Save it. Share the link with your team so they need no setup.
+- **Project** (any plan with Projects): New project → **Instructions**: paste instructions.md → **Files**: add pf-debate-guide.md.
+
+### Gemini
+1. Download the same two files ([instructions.md](https://github.com/SujayGG/pf-debate-mcp/releases/latest/download/instructions.md), [pf-debate-guide.md](https://github.com/SujayGG/pf-debate-mcp/releases/latest/download/pf-debate-guide.md)).
+2. gemini.google.com → **Gems** → **New Gem**. Paste instructions.md into **Instructions** and add pf-debate-guide.md under **Knowledge**. Save it.
+3. You can share the Gem with teammates.
+
+## Tools (Claude Desktop / MCP installs)
 | Tool | What it does |
 |---|---|
-| `search_cards` / `get_card` | A local library of cut cards from [OpenCaselist](https://huggingface.co/datasets/Yusuf5/OpenCaselist) (PF, LD, Policy and camp files, 2013–2024), full-text search, "popular" ranking by how many teams read a card |
+| `pf_guide` | PF knowledge: glossary, format, tactics, impacts, evidence ethics, how to build cases/blocks/scouts |
+| `search_cards` / `get_card` | Local library of cut cards from [OpenCaselist](https://huggingface.co/datasets/Yusuf5/OpenCaselist) (PF, LD, Policy, camp files; 2013–2024), with "popular" ranking by how many teams read a card |
 | `fetch_source` | Any article or PDF, turned into clean paragraphs plus citation metadata |
-| `cut_card` | Cuts a card, with an **ethics gate**: the body, underlining and highlighting must match the source verbatim or the cut is rejected. NSDA-complete citations. |
+| `cut_card` | Cuts a card; the text must match the source verbatim or it's rejected. Full NSDA citations. |
 | `export_doc` | A Verbatim-compatible .docx (Pocket/Hat/Block/Tag, underline, highlight) |
-| `caselist_search` / `caselist_team` / `caselist_download` | OpenCaselist with your Tabroom login: round reports, cites, open-source docs imported as cards |
-| `library_status` | Whether the library is built |
+| `caselist_search` / `caselist_team` / `caselist_download` | OpenCaselist with your Tabroom login: round reports, cites, open-source docs as cards |
+| `build_library` / `library_status` | Build the card library in the background and check its progress |
 
-It also ships six skills: pf-debate (jargon, format, tactics, impacts, evidence ethics), pf-cut-card, pf-analyze, pf-case, pf-blocks and pf-scout. Hosts without skill support get them as MCP prompts and resources.
+Skills: pf-debate, pf-cut-card, pf-analyze, pf-case, pf-blocks, pf-scout (in `src/pf_debate_mcp/skills/`).
 
-Web search comes from your agent's own search tool.
-
-## Install
-
+## Developer install
 Requires [uv](https://docs.astral.sh/uv/).
 
 **Claude Code (plugin: server + skills):**
@@ -33,7 +75,7 @@ Requires [uv](https://docs.astral.sh/uv/).
 /plugin install pf-debate@pf-debate
 ```
 
-**Any other MCP host.** Add this to its MCP config (Claude Desktop `claude_desktop_config.json`, Cursor `.cursor/mcp.json`, and so on):
+**Any MCP host (Cursor, Codex, Windsurf, and others):**
 ```json
 {
   "mcpServers": {
@@ -45,26 +87,26 @@ Requires [uv](https://docs.astral.sh/uv/).
 }
 ```
 
-**One-time setup (in a terminal):**
+**Terminal commands** (optional; the `build_library` tool does the same from chat):
 ```
 uvx --from git+https://github.com/SujayGG/pf-debate-mcp pf-debate-mcp build-library           # full library (a few hours, resumable)
 uvx --from git+https://github.com/SujayGG/pf-debate-mcp pf-debate-mcp build-library --quick   # PF cards only, a few minutes
-uvx --from git+https://github.com/SujayGG/pf-debate-mcp pf-debate-mcp login                   # optional: OpenCaselist via Tabroom
+uvx --from git+https://github.com/SujayGG/pf-debate-mcp pf-debate-mcp login                   # OpenCaselist via Tabroom
 ```
-- The default build keeps every PF and OpenEv card, plus LD/Policy cards read by 5 or more teams (`--min-reads`). See `build-library --help`.
-- If a build is interrupted, rerun it. Finished shards are skipped.
+- The full build keeps every PF and OpenEv card, plus LD/Policy cards read by 5 or more teams (`--min-reads`).
 - The login stores only the session cookie, never your password. You can also set `TABROOM_USERNAME` and `TABROOM_PASSWORD`.
-
-Data lives in `~/.pf-debate/` (set `PF_DEBATE_HOME` to move it). Exports go to `~/Documents/pf-debate/` (`PF_DEBATE_EXPORTS`).
+- Data lives in `~/.pf-debate/` (`PF_DEBATE_HOME`). Exports go to `~/Documents/pf-debate/` (`PF_DEBATE_EXPORTS`).
 
 ## Evidence ethics
-Cards are never generated. `cut_card` stores only exact slices of fetched source text, and the skills forbid writing card text from memory. You are still responsible for reading your evidence in context and following NSDA evidence rules.
+With the tools, cards are never generated: `cut_card` stores only exact slices of fetched source text. In web chat apps, the instructions forbid writing card text from memory, but nothing checks it automatically. Verify every card against its source. You are responsible for following NSDA evidence rules.
 
 ## Development
 ```
 uv run pytest
-uv run pf-debate-mcp            # stdio server
+uv run pf-debate-mcp                         # stdio server
+uv run python scripts/package.py             # build the release downloads into dist/
 npx @modelcontextprotocol/inspector uv run pf-debate-mcp
 ```
+Releasing: bump the version in `pyproject.toml`, `manifest.json` and `.claude-plugin/plugin.json`. Then run `package.py` and `gh release create vX.Y.Z dist/*`.
 
-Card data: OpenCaselist dataset (MIT) by the debate community via openCaselist. Code: MIT.
+Card data: the OpenCaselist dataset (MIT), from the debate community via openCaselist. Code: MIT.

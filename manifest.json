@@ -1,0 +1,57 @@
+{
+  "manifest_version": "0.4",
+  "name": "pf-debate",
+  "display_name": "PF Debate Partner",
+  "version": "0.2.0",
+  "description": "Public Forum debate partner: PF knowledge, a card library, verbatim card cutting, caselist scouting, and Verbatim speech docs.",
+  "long_description": "Turns Claude into a Public Forum debate partner. Search a library of already-cut cards (OpenCaselist), cut new cards from any article with a verbatim-only check, build cases, blocks and speeches, scout opponents on OpenCaselist, and export Verbatim-compatible .docx speech docs. First use: ask Claude to \"build the quick card library\".",
+  "author": { "name": "SujayGG", "url": "https://github.com/SujayGG" },
+  "repository": { "type": "git", "url": "https://github.com/SujayGG/pf-debate-mcp" },
+  "homepage": "https://github.com/SujayGG/pf-debate-mcp",
+  "license": "MIT",
+  "keywords": ["debate", "public forum", "nsda", "cards", "evidence"],
+  "server": {
+    "type": "uv",
+    "entry_point": "src/pf_debate_mcp/__main__.py",
+    "mcp_config": {
+      "command": "uv",
+      "args": ["run", "--directory", "${__dirname}", "pf-debate-mcp"],
+      "env": {
+        "TABROOM_USERNAME": "${user_config.tabroom_username}",
+        "TABROOM_PASSWORD": "${user_config.tabroom_password}"
+      }
+    }
+  },
+  "user_config": {
+    "tabroom_username": {
+      "type": "string",
+      "title": "Tabroom email (optional)",
+      "description": "Only needed for OpenCaselist scouting. Leave blank to skip.",
+      "required": false
+    },
+    "tabroom_password": {
+      "type": "string",
+      "title": "Tabroom password (optional)",
+      "description": "Stored securely by Claude Desktop and used only to log in to OpenCaselist.",
+      "sensitive": true,
+      "required": false
+    }
+  },
+  "tools": [
+    { "name": "pf_guide", "description": "PF knowledge: jargon, format, tactics, impacts, evidence ethics, task guides" },
+    { "name": "search_cards", "description": "Search the library of already-cut debate cards" },
+    { "name": "get_card", "description": "Read a full card" },
+    { "name": "fetch_source", "description": "Fetch an article or PDF as clean text" },
+    { "name": "cut_card", "description": "Cut a card; rejects anything not verbatim from the source" },
+    { "name": "export_doc", "description": "Export a Verbatim-style .docx speech doc" },
+    { "name": "caselist_search", "description": "Search OpenCaselist" },
+    { "name": "caselist_team", "description": "A team's caselist rounds and cites" },
+    { "name": "caselist_download", "description": "Import a team's open-source doc as cards" },
+    { "name": "library_status", "description": "Card library status and build progress" },
+    { "name": "build_library", "description": "Build the card library in the background" }
+  ],
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": { "python": ">=3.11" }
+  }
+}

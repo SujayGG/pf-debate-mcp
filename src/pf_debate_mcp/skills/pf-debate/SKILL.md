@@ -15,7 +15,11 @@ Never write card text, quotes or statistics from memory, and never make "placeho
 
 If a needed card can't be found, write the argument as an **analytic** (clearly labeled "analytic, no card yet") and list the evidence still to find.
 
+### Without the pf-debate tools (web chat apps: Claude.ai, ChatGPT, Gemini)
+If `search_cards`, `fetch_source` and `cut_card` are not available, the rule still holds. Cut cards only from pages you actually opened with web search/browsing. Copy the card text exactly from the opened page, never from memory or a search snippet. Give each card its full cite and URL, and mark read-aloud text as ==highlighted==. Tell the user to check every card against its source before reading it in a round, because nothing verified it automatically. If you cannot open the source, it is an analytic.
+
 ## Load before answering
+The files below sit next to this one. When they are served as MCP tools instead, call `pf_guide("<name>")`, e.g. `pf_guide("impacts")`.
 | Request involves | Read |
 |---|---|
 | Any jargon you're unsure of | references/glossary.md |
@@ -24,14 +28,14 @@ If a needed card can't be found, write the argument as an **analytic** (clearly 
 | Impacts (nuke war, extinction, econ, climate, SV) or weighing | references/impacts.md |
 | Cutting, citing, or judging evidence quality | references/evidence-ethics.md |
 
-## Route to the task skill
+## Route to the task skill (a separate skill, a `<name>.md` file next to this one, or `pf_guide("<name>")`)
 - Cut a card, find evidence: **pf-cut-card**
 - Analyze or indict a card or case: **pf-analyze**
 - Build a case, contention, or constructive ("case centered around X impact"): **pf-case**
 - Blocks, frontlines, turns, rebuttal/summary/final focus: **pf-blocks**
 - Topic analysis, prep plan, opponent scouting, caselist: **pf-scout**
 
-MCP hosts without skills: these are also MCP prompts with the same names, and resources at `skill://<name>/SKILL.md`.
+MCP hosts without skills can use `pf_guide`; the same guides are also MCP prompts, and resources at `skill://<name>/SKILL.md`.
 
 ## Defaults
 - Ask which side and speaking position, and the judge type (lay/flow/tech), when it changes the output. Otherwise assume a flow judge.

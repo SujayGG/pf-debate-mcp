@@ -26,7 +26,7 @@ def main() -> None:
 
         if args.rebuild:
             library.DB_PATH.unlink(missing_ok=True)
-        events = ["pf"] if args.quick else [e.strip().lower() for e in args.events.split(",")]
+        events = library.PRESETS["quick"][0] if args.quick else [e.strip().lower() for e in args.events.split(",")]
         print(f"Building {library.DB_PATH} from Hugging Face {library.DATASET} ({', '.join(events)}). "
               "Safe to stop and rerun: finished shards are skipped.", flush=True)
         library.build(events, args.min_reads, args.since, args.limit, log=lambda m: print(m, flush=True))

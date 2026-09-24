@@ -19,9 +19,9 @@ from .sources import FetchError, fetch, paragraphs
 
 SKILLS = Path(__file__).parent / "skills"
 
-INSTRUCTIONS = """You are a Public Forum (PF) debate partner. Before PF work, read the pf-debate skill
-(prompt `pf-debate` or resource skill://pf-debate/SKILL.md) and its references for jargon, format,
-tactics and impacts. Evidence rules are non-negotiable: never write card text from memory; every
+INSTRUCTIONS = """You are a Public Forum (PF) debate partner. Before PF work, call pf_guide("pf-debate")
+and then the guides it points to (jargon, format, tactics, impacts, and the task guides pf-case,
+pf-cut-card, pf-analyze, pf-blocks, pf-scout). Evidence rules are non-negotiable: never write card text from memory; every
 card comes from search_cards/get_card (existing cards) or fetch_source + cut_card (new cards), and
 cut_card only accepts text that appears verbatim in the source. Use your own web search to find URLs.
 IDs: lib:N = library card, cN = user's card, sN = fetched source."""
@@ -203,8 +203,31 @@ def caselist_download(path: str) -> str:
 
 @mcp.tool()
 def library_status() -> dict:
-    """Whether the local card library is built, how many cards per event, and years covered."""
+    """Whether the local card library is built, how many cards per event, years covered, and build progress."""
     return library.status()
+
+
+@mcp.tool()
+def build_library(mode: str = "quick") -> str:
+    """Download and index the card library in the background (one time; resumable).
+    mode "quick": PF cards only (~25k cards, minutes). mode "full": PF + camp OpenEv files + widely read
+    LD/Policy cards (~500k cards, a few hours, 1-2 GB). Ask the user before starting "full"."""
+    if mode not in library.PRESETS:
+        return f"ERROR: mode must be one of {list(library.PRESETS)}"
+    return library.start_background_build(mode)
+
+
+@mcp.tool()
+def pf_guide(name: str = "pf-debate") -> str:
+    """PF debate knowledge. Read "pf-debate" first. Task guides: pf-case, pf-cut-card, pf-analyze,
+    pf-blocks, pf-scout. References: glossary, format, tactics, impacts, evidence-ethics."""
+    key = name.strip().lower().removesuffix(".md")
+    for f in (SKILLS / key / "SKILL.md", SKILLS / "pf-debate" / "references" / f"{key}.md"):
+        if f.exists():
+            return f.read_text(encoding="utf-8")
+    return "Unknown guide. Options: " + ", ".join(
+        [d.name for d in SKILLS.iterdir() if d.is_dir()] +
+        [f.stem for f in (SKILLS / "pf-debate" / "references").glob("*.md")])
 
 
 def _const(text: str):
