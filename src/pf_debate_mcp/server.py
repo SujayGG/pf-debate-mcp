@@ -191,7 +191,12 @@ def auto_cut_cards(claim: str, max_new: int = 4) -> dict:
 
     def try_cut(r):
         try:
-            sid, src = resolve_source(r["url"])
+            if r.get("text"):  # the API already gave the full article (Guardian): no fetch, no paywall
+                meta = {"url": r["url"], "title": r.get("title"), "author": ", ".join(r.get("authors") or []),
+                        "date": r.get("date"), "publisher": r.get("source")}
+                sid, src = store.add_source(r["url"], meta, r["text"]), {**meta, "text": r["text"]}
+            else:
+                sid, src = resolve_source(r["url"])
             s = semantic.suggest(src["text"], claim)
             card, warnings = make_card(
                 sid, claim, src.get("author") or ", ".join(r.get("authors") or []) or r.get("source") or "",
@@ -210,8 +215,8 @@ def auto_cut_cards(claim: str, max_new: int = 4) -> dict:
     results = [f.result() for f in done] + [{"skipped": "(slow site)", "reason": "timed out"} for _ in late]
     seen, new = set(), []
     for x in sorted((x for x in results if "card" in x and x["score"] >= 0.45), key=lambda x: -x["score"]):
-        body = "".join(t for t, _, _ in x["card"]["runs"])[:300]
-        if body not in seen:  # the same article can arrive through two links
+        body = x["card"]["cite_rest"].split("; http")[0]  # author, title, date (not URL): same article, two links
+        if body not in seen:
             seen.add(body)
             new.append(x)
     new = new[:max_new]

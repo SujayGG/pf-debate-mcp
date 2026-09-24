@@ -7,6 +7,8 @@ a source that fails or times out is reported in "skipped" rather than losing the
 
 import concurrent.futures as cf
 import json
+import os
+import re
 import threading
 import time
 from email.utils import parsedate_to_datetime
@@ -21,6 +23,8 @@ OPENALEX = "https://api.openalex.org/works"
 GDELT = "https://api.gdeltproject.org/api/v2/doc/doc"
 GNEWS = "https://news.google.com/rss/search"
 BING = "https://www.bing.com/news/search"
+GUARDIAN = "https://content.guardianapis.com/search"
+DECODE_GNEWS = True
 MAILTO = "pf-debate@users.noreply.github.com"
 TIMEOUT = 8.0  # seconds per source; sources run in parallel
 _HEADERS = {"User-Agent": "pf-debate-mcp (citable evidence search)"}
@@ -123,6 +127,33 @@ def _rfc822_date(s: str) -> str | None:
         return None
 
 
+_BROWSER = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                          "Chrome/140.0 Safari/537.36"}
+
+
+def decode_gnews(link: str) -> str | None:
+    """Google News RSS links are opaque redirects; ask Google for the real article URL (unofficial: same
+    two calls the Google News web page makes). Returns None if Google changes the format."""
+    try:
+        aid = link.split("/articles/")[1].split("?")[0]
+        page = httpx.get(f"https://news.google.com/articles/{aid}", headers=_BROWSER, timeout=TIMEOUT,
+                         follow_redirects=True).text
+        sg = re.search(r"data-n-a-sg=[\"']([^\"']+)", page)
+        ts = re.search(r"data-n-a-ts=[\"']([^\"']+)", page)
+        if not (sg and ts):
+            return None
+        inner = ["garturlreq", [["X", "X", ["X", "X"], None, None, 1, 1, "US:en", None, 1, None, None, None, None,
+                                 None, 0, 1], "X", "X", 1, [1, 1, 1], 1, 1, None, 0, 0, None, 0],
+                 aid, int(ts.group(1)), sg.group(1)]
+        r = httpx.post("https://news.google.com/_/DotsSplashUi/data/batchexecute",
+                       data={"f.req": json.dumps([[["Fbv4je", json.dumps(inner)]]])},
+                       headers={**_BROWSER, "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"},
+                       timeout=TIMEOUT)
+        return json.loads(json.loads(r.text.split("\n\n")[1])[0][2])[1]
+    except (httpx.HTTPError, IndexError, ValueError, TypeError):
+        return None
+
+
 def _fetch_gnews(query: str, n: int) -> list[dict]:
     params = {"q": query, "hl": "en-US", "gl": "US", "ceid": "US:en"}
     root = ET.fromstring(_get(_url(GNEWS, params)).text)
@@ -133,7 +164,26 @@ def _fetch_gnews(query: str, n: int) -> list[dict]:
                     "url": (item.findtext("link") or "").strip(), "authors": [], "quals": None,
                     "date": _rfc822_date(item.findtext("pubDate") or ""),
                     "source": source_el.text if source_el is not None else None, "snippet": ""})
+    if DECODE_GNEWS:  # turn Google's redirect links into real article URLs (in parallel); drop failures
+        with cf.ThreadPoolExecutor(max_workers=6) as ex:
+            real = list(ex.map(lambda it: decode_gnews(it["url"]), out))
+        out = [{**it, "url": u} for it, u in zip(out, real) if u]
     return out
+
+
+def _fetch_guardian(query: str, n: int) -> list[dict]:
+    """The Guardian Open Platform: full article text in the API response, so no fetching or paywalls.
+    Needs a free key (GUARDIAN_API_KEY); without one this source is skipped."""
+    key = os.environ.get("GUARDIAN_API_KEY")
+    if not key:
+        return []
+    d = _get(_url(GUARDIAN, {"q": query, "page-size": n, "order-by": "relevance", "api-key": key,
+                             "show-fields": "bodyText,byline,trailText"})).json()["response"]
+    return [{"kind": "news", "title": a.get("webTitle"), "url": a.get("webUrl"),
+             "authors": [a["fields"]["byline"]] if a.get("fields", {}).get("byline") else [], "quals": None,
+             "date": (a.get("webPublicationDate") or "")[:10], "source": "The Guardian",
+             "snippet": a.get("fields", {}).get("trailText", "")[:300], "text": a.get("fields", {}).get("bodyText")}
+            for a in d.get("results", [])]
 
 
 def _fetch_bing(query: str, n: int) -> list[dict]:
@@ -176,7 +226,7 @@ def find_sources(query: str, kinds: tuple[str, ...] = ("papers", "news"), limit:
 
     jobs = [("openalex", _fetch_papers)] if "papers" in kinds else []
     if "news" in kinds:
-        jobs += [("gdelt", _fetch_gdelt), ("bing", _fetch_bing)]
+        jobs += [("gdelt", _fetch_gdelt), ("bing", _fetch_bing), ("gnews", _fetch_gnews), ("guardian", _fetch_guardian)]
 
     got, skipped = {}, []
     with cf.ThreadPoolExecutor(max_workers=max(1, len(jobs))) as ex:
@@ -191,13 +241,7 @@ def find_sources(query: str, kinds: tuple[str, ...] = ("papers", "news"), limit:
 
     news = []
     if "news" in kinds:
-        gdelt_hits = got.get("gdelt")
-        news = (gdelt_hits or []) + got.get("bing", [])
-        if len(news) < limit // 2:
-            try:
-                news = news + _fetch_gnews(query, limit)  # GDELT thin or down: top up with Google News RSS
-            except Exception as e:
-                skipped.append(f"gnews: {_reason(e)}")
+        news = got.get("guardian", []) + got.get("gdelt", []) + got.get("bing", []) + got.get("gnews", [])
         news = sorted(_dedupe(news), key=lambda x: x.get("date") or "", reverse=True)[:limit]
 
     result = {"results": papers + news, "skipped": skipped}

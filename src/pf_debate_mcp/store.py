@@ -77,14 +77,22 @@ def _new_id(prefix: str) -> str:
 _local = threading.local()  # one connection per thread: MCP tools run in a thread pool
 
 
+_setup_lock = threading.Lock()
+_setup_done = [False]
+
+
 def db() -> sqlite3.Connection:
     con = getattr(_local, "con", None)
     if con is None:
         HOME.mkdir(parents=True, exist_ok=True)
         con = _local.con = sqlite3.connect(HOME / "pf.db", timeout=30)
         con.row_factory = sqlite3.Row
-        con.execute("pragma journal_mode=wal")
-        con.executescript(_SCHEMA)
+        con.execute("pragma busy_timeout=30000")
+        with _setup_lock:  # WAL switch + schema once per process: concurrent first-time setup deadlocks
+            if not _setup_done[0]:
+                con.execute("pragma journal_mode=wal")
+                con.executescript(_SCHEMA)
+                _setup_done[0] = True
     return con
 
 

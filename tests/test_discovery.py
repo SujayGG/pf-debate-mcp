@@ -149,3 +149,6 @@ def test_429_is_retried_once(monkeypatch):
 def _no_real_bing(web, monkeypatch):
     monkeypatch.setattr(discovery, "BING", f"{web}/no-bing")  # 404 locally: tests never hit the real Bing
     monkeypatch.setattr(discovery, "GDELT_GAP", 0)  # no pacing delay in tests
+    monkeypatch.setattr(discovery, "DECODE_GNEWS", False)
+    monkeypatch.setattr(discovery, "GNEWS", f"{web}/no-gnews")  # tests that need it point it at a fixture  # fixture links aren't real Google links
+    monkeypatch.delenv("GUARDIAN_API_KEY", raising=False)
