@@ -1,0 +1,1176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pf&middot;debate app</title>
+<meta name="description" content="Search verified cut cards, find and cut new evidence, build a case doc, and ask a free AI — all in one page, no account needed.">
+<meta name="color-scheme" content="light dark">
+<style>
+  :root {
+    --paper: #f0f1ea;
+    --paper-line: #d7d9cc;
+    --card: #fdfdfa;
+    --ink: #191a15;
+    --ink-soft: #52544a;
+    --ink-faint: #828474;
+    --yellow: #f2df1f;
+    --yellow-ink: #4a3f00;
+    --cyan: #12a89e;
+    --cyan-ink: #06413d;
+    --cyan-bg: #d8f3f1;
+    --red: #b3402b;
+    --red-bg: #f6ded8;
+    --amber: #a96a10;
+    --amber-bg: #f5e6cc;
+    --green: #1a7a3c;
+    --green-bg: #dcefe0;
+    --focus: #0b6b8c;
+    --radius: 3px;
+    --border: 1px solid var(--paper-line);
+    --shadow: 0 1px 0 rgba(25,26,21,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #17180f;
+      --paper-line: #35362a;
+      --card: #1e2015;
+      --ink: #eeefe3;
+      --ink-soft: #b7b9a7;
+      --ink-faint: #83857a;
+      --yellow: #e7d21b;
+      --yellow-ink: #2b2400;
+      --cyan: #2fd0c4;
+      --cyan-ink: #d9fbf7;
+      --cyan-bg: #10352f;
+      --red: #ff8b6f;
+      --red-bg: #3a1c14;
+      --amber: #f0b545;
+      --amber-bg: #3a2b0c;
+      --green: #7fe0a0;
+      --green-bg: #123b21;
+      --focus: #5fd0f0;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    min-width: 320px;
+    overflow-x: hidden;
+  }
+  .serif { font-family: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, "Times New Roman", serif; }
+  a { color: var(--cyan-ink); background: var(--cyan-bg); border-radius: 2px; padding: 1px 3px; }
+  a, button { font: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 2px; }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .001ms !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
+  }
+
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 16px; }
+
+  /* ---- header ---- */
+  header.site { padding: 14px 0 10px; border-bottom: var(--border); background: var(--card); }
+  .header-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  a.back { background: none; text-decoration: none; font-weight: 700; color: var(--ink); padding: 10px 2px; min-height: 44px; display: inline-flex; align-items: center; }
+  a.back span { color: var(--cyan-ink); }
+  .status-row { display: flex; align-items: center; gap: 7px; font-size: .85rem; color: var(--ink-soft); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ink-faint); flex: none; }
+  .dot.online { background: var(--green); }
+  .dot.waking { background: var(--amber); }
+  .dot.down { background: var(--red); }
+  p.privacy { max-width: 880px; margin: 8px auto 0; padding: 0 16px; font-size: .8rem; color: var(--ink-faint); }
+
+  /* ---- tabs ---- */
+  nav.tabs-wrap { background: var(--card); border-bottom: var(--border); }
+  .tablist { display: flex; flex-wrap: wrap; gap: 2px; max-width: 880px; margin: 0 auto; padding: 0 16px; }
+  .tablist [role="tab"] {
+    background: none; border: none; border-bottom: 3px solid transparent;
+    padding: 12px 12px; min-height: 44px; color: var(--ink-soft); font-weight: 600; font-size: .92rem;
+  }
+  .tablist [role="tab"][aria-selected="true"] { color: var(--ink); border-bottom-color: var(--cyan); }
+  .tablist [role="tab"]:hover { color: var(--ink); }
+
+  main { padding: 22px 0 60px; }
+  [role="tabpanel"] > h1 { font-size: 1.4rem; margin: 0 0 4px; }
+  .lede { color: var(--ink-soft); margin: 0 0 18px; max-width: 60ch; }
+
+  /* ---- forms ---- */
+  label { display: block; font-size: .85rem; font-weight: 600; color: var(--ink-soft); margin: 10px 0 4px; }
+  input[type="text"], input[type="search"], input[type="url"], input:not([type]), select, textarea {
+    width: 100%; font: inherit; padding: 10px; min-height: 44px; border: 1px solid var(--paper-line);
+    border-radius: var(--radius); background: var(--card); color: var(--ink);
+  }
+  textarea { min-height: 72px; resize: vertical; }
+  .req { color: var(--red); font-weight: 700; }
+  .filter-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .filter-row label { flex: 1 1 140px; margin-top: 10px; }
+  fieldset { border: var(--border); border-radius: var(--radius); margin: 14px 0; padding: 4px 12px 12px; }
+  legend { font-weight: 700; padding: 0 4px; }
+
+  button.primary, button[type="submit"], .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    min-height: 44px; padding: 10px 18px; margin-top: 10px; border: none; border-radius: var(--radius);
+    background: var(--ink); color: var(--paper); font-weight: 600;
+  }
+  button.primary:hover, button[type="submit"]:hover, .btn:hover { background: var(--cyan-ink); }
+  button.secondary { background: var(--card); color: var(--ink); border: var(--border); }
+  button.secondary:hover { background: var(--paper); }
+  button:disabled { opacity: .55; cursor: not-allowed; }
+  .icon-btn { min-width: 44px; min-height: 44px; background: none; border: none; font-size: 1.2rem; color: var(--ink-soft); }
+  .link-btn { background: var(--cyan-bg); color: var(--cyan-ink); border: none; border-radius: 2px; padding: 6px 8px; min-height: 32px; font-size: .88rem; }
+
+  .status-line { min-height: 1.3em; font-size: .88rem; color: var(--ink-soft); margin: 8px 0; }
+  .status-line.err { color: var(--red); font-weight: 600; }
+  .banner-error { background: var(--red-bg); color: var(--red); border-left: 4px solid var(--red); padding: 10px 12px; border-radius: 0 2px 2px 0; font-weight: 600; margin: 10px 0; }
+  .callout { margin: 12px 0; padding: 10px 12px; border-left: 4px solid var(--amber); background: var(--amber-bg); color: var(--ink); font-size: .88rem; border-radius: 0 2px 2px 0; }
+  .callout.info { border-left-color: var(--cyan); background: var(--cyan-bg); }
+
+  /* ---- results ---- */
+  ul.results-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .result-btn {
+    display: block; width: 100%; text-align: left; background: var(--card); border: var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px 14px; color: var(--ink);
+  }
+  .result-btn:hover { border-color: var(--cyan); }
+  .result-tag { display: block; font-weight: 700; margin-bottom: 4px; }
+  .result-meta { display: block; font-size: .78rem; color: var(--ink-faint); margin-bottom: 6px; }
+  .result-snippet { display: block; font-size: .88rem; color: var(--ink-soft); }
+  li.empty, p.empty { color: var(--ink-soft); font-size: .92rem; }
+
+  /* ---- card runs ---- */
+  .runs { line-height: 1.7; }
+  .run-hl { background: var(--cyan); color: var(--cyan-ink); text-decoration: underline; padding: 0 1px; border-radius: 2px; }
+  .run-ul { text-decoration: underline; color: var(--ink); }
+  .run-unread { font-size: .82em; color: var(--ink-faint); }
+  .runs.read-only .run-unread { display: none; }
+  .toggle-row { display: flex; align-items: center; gap: 8px; font-weight: 400; font-size: .9rem; margin: 12px 0; }
+  .toggle-row input { width: 20px; height: 20px; min-height: 20px; }
+  .cite { color: var(--ink-faint); font-size: .85rem; border-top: 1px dashed var(--paper-line); padding-top: 8px; margin: 4px 0 12px; }
+
+  /* ---- dialog ---- */
+  dialog#cardDialog { border: none; border-radius: var(--radius); padding: 0; max-width: 640px; width: 92vw; background: var(--card); color: var(--ink); box-shadow: 0 8px 30px rgba(0,0,0,.3); }
+  dialog#cardDialog::backdrop { background: rgba(0,0,0,.5); }
+  .dialog-inner { padding: 20px; max-height: 85vh; overflow: auto; position: relative; }
+  #cardDialogClose { position: absolute; top: 10px; right: 10px; }
+  .dialog-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+
+  /* ---- find ---- */
+  .find-item { background: var(--card); border: var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px 14px; margin-bottom: 10px; }
+  .find-title { font-weight: 700; margin: 0 0 4px; }
+  .badge { background: var(--amber-bg); color: var(--amber); font-size: .72rem; font-weight: 700; padding: 2px 6px; border-radius: 20px; margin-left: 6px; }
+  .find-meta { font-size: .78rem; color: var(--ink-faint); margin: 0 0 6px; }
+  .find-snippet { font-size: .88rem; color: var(--ink-soft); margin: 0 0 8px; }
+  .paragraphs { background: var(--card); border: var(--border); border-radius: var(--radius); padding: 12px 16px; max-height: 340px; overflow: auto; }
+  .paragraphs li { margin-bottom: 10px; font-size: .92rem; }
+  .passage { background: var(--card); border: var(--border); border-radius: var(--radius); padding: 14px; }
+  .mark-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+  hr { border: none; border-top: var(--border); margin: 26px 0; }
+
+  /* ---- doc builder ---- */
+  ul#docItems { list-style: none; margin: 0 0 18px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  li.doc-item { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; background: var(--card); border: var(--border); border-radius: var(--radius); padding: 8px 10px; }
+  .doc-type { font-size: .72rem; font-weight: 700; color: var(--ink-faint); background: var(--paper); border-radius: 2px; padding: 4px 6px; white-space: nowrap; }
+  .doc-heading, .doc-text { min-height: 40px; margin: 0; }
+  .doc-card-label { font-size: .9rem; }
+  .doc-controls { display: flex; gap: 4px; }
+  .doc-controls button { min-width: 36px; min-height: 36px; padding: 4px 8px; background: var(--paper); border: var(--border); border-radius: var(--radius); }
+  .add-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 14px; }
+  .add-row label { margin: 0 0 4px; }
+  .add-row select, .add-row input, .add-row textarea { width: auto; flex: 1 1 160px; }
+  .export-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+  /* ---- chat ---- */
+  .model-select { display: flex; flex-direction: column; gap: 6px; background: var(--card); border: var(--border); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 6px; }
+  .model-select label { display: flex; align-items: center; gap: 8px; font-weight: 400; font-size: .92rem; color: var(--ink); margin: 4px 0; }
+  .model-select input { width: 20px; height: 20px; min-height: 20px; }
+  .chat-log { background: var(--card); border: var(--border); border-radius: var(--radius); padding: 12px; min-height: 160px; max-height: 420px; overflow-y: auto; margin: 10px 0; }
+  .msg { border-radius: var(--radius); padding: 8px 10px; margin-bottom: 8px; max-width: 90%; font-size: .94rem; }
+  .msg p { margin: 0 0 6px; }
+  .msg p:last-child { margin-bottom: 0; }
+  .msg-user { background: var(--paper); margin-left: auto; }
+  .msg-assistant { background: var(--cyan-bg); color: var(--cyan-ink); }
+  details.tool-step { font-size: .82rem; color: var(--ink-soft); margin: 4px 0; }
+  details.tool-step summary { cursor: pointer; padding: 4px 2px; min-height: 32px; }
+  details.tool-step pre { white-space: pre-wrap; word-break: break-word; background: var(--paper); padding: 8px; border-radius: 2px; }
+  details.tool-error summary { color: var(--red); }
+  .handoff { border-top: var(--border); margin-top: 22px; padding-top: 16px; }
+  .handoff-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .try-prompts { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+
+  footer.site { border-top: var(--border); margin-top: 10px; padding: 16px 0 30px; font-size: .82rem; color: var(--ink-faint); }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap header-row">
+    <a class="back" href="/">&larr; pf<span>&middot;</span>debate</a>
+    <span class="status-row">
+      <span class="dot" id="statusDot" aria-hidden="true"></span>
+      <span id="statusText" role="status" aria-live="polite">Checking server status&hellip;</span>
+    </span>
+  </div>
+  <p class="privacy">Searches and cuts run on our free server and aren't stored. The free shared AI sends your chat to Cerebras/Groq; Puter uses your own account.</p>
+</header>
+
+<nav class="tabs-wrap" aria-label="App sections">
+  <div class="tablist" role="tablist">
+    <button role="tab" id="tab-search" aria-controls="panel-search" aria-selected="true" tabindex="0">Search cards</button>
+    <button role="tab" id="tab-find" aria-controls="panel-find" aria-selected="false" tabindex="-1">Find evidence</button>
+    <button role="tab" id="tab-doc" aria-controls="panel-doc" aria-selected="false" tabindex="-1">Doc builder</button>
+    <button role="tab" id="tab-ask" aria-controls="panel-ask" aria-selected="false" tabindex="-1">Ask the AI</button>
+  </div>
+</nav>
+
+<main class="wrap">
+
+  <!-- ============ SEARCH ============ -->
+  <section id="panel-search" role="tabpanel" aria-labelledby="tab-search" tabindex="0">
+    <h1 class="serif">Search cards</h1>
+    <p class="lede">Plain English is fine &mdash; describe the argument you need.</p>
+    <form id="searchForm">
+      <label for="searchQ">Describe what you need</label>
+      <input id="searchQ" type="search" placeholder="e.g. cards saying data centers raise electricity bills" autocomplete="off">
+      <div class="filter-row">
+        <label for="searchSort">Sort
+          <select id="searchSort"><option value="relevance">Relevance</option><option value="popular">Popular</option></select>
+        </label>
+        <label for="searchSide">Side
+          <select id="searchSide"><option value="">Any</option><option value="A">Aff</option><option value="N">Neg</option></select>
+        </label>
+        <label for="searchEvent">Event
+          <select id="searchEvent"><option value="">Any</option><option value="pf">PF</option><option value="ld">LD</option><option value="cx">CX</option><option value="openev">Open Ev</option></select>
+        </label>
+      </div>
+      <button type="submit" class="primary">Search</button>
+    </form>
+    <p id="searchStatus" class="status-line" role="status" aria-live="polite"></p>
+    <ul id="searchResults" class="results-list">
+      <li class="empty">Try: <button type="button" class="link-btn" data-ex="cards saying data centers raise electricity bills">data centers raise electricity bills</button> <button type="button" class="link-btn" data-ex="nuclear war impact cards">nuclear war impact cards</button></li>
+    </ul>
+  </section>
+
+  <!-- ============ FIND ============ -->
+  <section id="panel-find" role="tabpanel" aria-labelledby="tab-find" tabindex="0" hidden>
+    <h1 class="serif">Find new evidence</h1>
+    <p class="lede">Search live papers and news, then cut a verbatim card from whatever you open.</p>
+    <form id="findForm">
+      <label for="findQ">Search papers &amp; news</label>
+      <input id="findQ" type="search" placeholder="e.g. data center electricity demand study" autocomplete="off">
+      <button type="submit" class="primary">Find</button>
+    </form>
+    <p id="findStatus" class="status-line" role="status" aria-live="polite"></p>
+    <div id="findResults"></div>
+
+    <hr>
+
+    <form id="fetchForm">
+      <label for="fetchUrl">Or paste a URL to open &amp; cut</label>
+      <input id="fetchUrl" type="url" placeholder="https://example.com/article">
+      <button type="submit" class="primary">Open &amp; cut</button>
+    </form>
+    <p id="fetchStatus" class="status-line" role="status" aria-live="polite"></p>
+
+    <div id="cutWorkspace" hidden>
+      <h2>Cut a card</h2>
+      <ol id="fetchParagraphs" class="paragraphs"></ol>
+
+      <label for="claimInput">Your claim (what should this card say?)</label>
+      <textarea id="claimInput" placeholder="e.g. data centers raise electricity bills for everyone nearby"></textarea>
+      <button type="button" id="suggestBtn" class="secondary">Suggest cut</button>
+      <p id="suggestStatus" class="status-line" role="status" aria-live="polite"></p>
+
+      <div id="suggestWorkspace" hidden>
+        <h3>Suggested passage</h3>
+        <p class="lede">Select text below, then mark it.</p>
+        <div id="passageEl" class="passage runs" tabindex="0"></div>
+        <div class="mark-actions">
+          <button type="button" id="markHighlight" class="secondary">Highlight</button>
+          <button type="button" id="markUnderline" class="secondary">Underline</button>
+          <button type="button" id="markClear" class="secondary">Clear</button>
+        </div>
+
+        <fieldset>
+          <legend>Cite</legend>
+          <label for="citeTag">Tag</label><input id="citeTag">
+          <label for="citeAuthor">Author</label><input id="citeAuthor">
+          <label for="citeDate">Date</label><input id="citeDate">
+          <label for="citeTitle">Title</label><input id="citeTitle">
+          <label for="citePublisher">Publisher</label><input id="citePublisher">
+          <label for="citeUrl">URL</label><input id="citeUrl" type="url">
+          <label for="citeQuals">Author qualifications <span class="req">required</span></label>
+          <input id="citeQuals" required>
+        </fieldset>
+        <button type="button" id="cutBtn" class="primary">Cut card</button>
+        <p id="cutStatus" class="status-line" role="status" aria-live="polite"></p>
+        <div id="cutResult" hidden></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DOC ============ -->
+  <section id="panel-doc" role="tabpanel" aria-labelledby="tab-doc" tabindex="0" hidden>
+    <h1 class="serif">Doc builder</h1>
+    <p class="callout">Hosted card ids (c_xxxxxxxxxxxx) expire when the server restarts &mdash; export soon after cutting.</p>
+    <label for="docTitle">Doc title</label>
+    <input id="docTitle" value="Untitled doc">
+
+    <ul id="docItems"></ul>
+
+    <form id="addHeadingForm" class="add-row">
+      <div>
+        <label for="headingType">Add heading</label>
+        <select id="headingType">
+          <option value="pocket">Pocket</option>
+          <option value="hat">Hat</option>
+          <option value="block">Block</option>
+          <option value="tag">Tag</option>
+        </select>
+      </div>
+      <div style="flex:2 1 200px">
+        <label for="headingText">Heading text</label>
+        <input id="headingText" placeholder="heading text">
+      </div>
+      <button type="submit" class="secondary">Add</button>
+    </form>
+    <form id="addTextForm" class="add-row">
+      <div style="flex:1 1 100%">
+        <label for="freeText">Add free text</label>
+        <textarea id="freeText" rows="2" placeholder="analysis, instructions, weighing&hellip;"></textarea>
+      </div>
+      <button type="submit" class="secondary">Add</button>
+    </form>
+
+    <div class="export-row">
+      <button type="button" id="exportDocx" class="primary">Word (Verbatim)</button>
+      <button type="button" id="exportGdocs" class="primary">Google Docs</button>
+    </div>
+    <p id="exportStatus" class="status-line" role="status" aria-live="polite"></p>
+  </section>
+
+  <!-- ============ ASK ============ -->
+  <section id="panel-ask" role="tabpanel" aria-labelledby="tab-ask" tabindex="0" hidden>
+    <h1 class="serif">Ask the AI</h1>
+    <div class="model-select" role="radiogroup" aria-label="AI model source">
+      <label><input type="radio" name="modelSrc" value="free" checked> Free shared AI (default)</label>
+      <label><input type="radio" name="modelSrc" value="puter"> Sign in with Puter (your own free allowance)</label>
+    </div>
+    <p id="modelStatus" class="status-line" role="status" aria-live="polite"></p>
+
+    <div id="chatLog" class="chat-log" aria-live="polite" aria-label="Conversation"></div>
+
+    <form id="chatForm">
+      <label for="chatInput">Message</label>
+      <textarea id="chatInput" rows="3" placeholder="e.g. Cut me a card that data centers raise electricity bills"></textarea>
+      <button type="submit" class="primary">Send</button>
+    </form>
+    <p id="chatStatus" class="status-line" role="status" aria-live="polite"></p>
+    <ul class="try-prompts">
+      <li><button type="button" class="link-btn" data-ex="Make me a neg case on this month's PF topic centered around a nuclear impact">Make a neg case around a nuclear impact</button></li>
+      <li><button type="button" class="link-btn" data-ex="They dropped our link turn. Write my summary.">They dropped our link turn &mdash; write my summary</button></li>
+    </ul>
+
+    <div class="handoff">
+      <h2>Hand off to ChatGPT / Gemini</h2>
+      <p class="lede">Builds a prompt from the system instructions, your doc's cards, and your request below, then opens it elsewhere.</p>
+      <label for="handoffPrompt">What do you want help with?</label>
+      <textarea id="handoffPrompt" rows="2" placeholder="e.g. Write my final focus using these cards"></textarea>
+      <div class="handoff-actions">
+        <button type="button" id="handoffChatGPT" class="secondary">Hand off to ChatGPT</button>
+        <button type="button" id="handoffGemini" class="secondary">Hand off to Gemini</button>
+      </div>
+      <p id="handoffStatus" class="status-line" role="status" aria-live="polite"></p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site">
+  <div class="wrap"><p>pf&middot;debate &mdash; free and open source. <a href="/">Back to the connector setup page</a>.</p></div>
+</footer>
+
+<dialog id="cardDialog" aria-labelledby="cardDialogTitle">
+  <div class="dialog-inner">
+    <button type="button" id="cardDialogClose" class="icon-btn" aria-label="Close card">&times;</button>
+    <h2 id="cardDialogTitle" class="serif">&nbsp;</h2>
+    <p id="cardDialogCite" class="cite"></p>
+    <label class="toggle-row"><input type="checkbox" id="readOnlyToggle"> Show only read text</label>
+    <div id="cardRuns" class="runs"></div>
+    <div class="dialog-actions">
+      <button type="button" id="cardAddDoc" class="secondary">Add to doc</button>
+      <button type="button" id="cardCopy" class="secondary">Copy card</button>
+    </div>
+    <p id="cardActionStatus" class="status-line" role="status" aria-live="polite"></p>
+  </div>
+</dialog>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- small helpers ---------- */
+  function $(id) { return document.getElementById(id); }
+  function escapeHtml(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function prefersReducedMotion() {
+    return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+  function errMsg(e) {
+    if (e && e.waking) return "The server is waking up (free hosting sleeps when idle) — try again in about a minute.";
+    if (e instanceof TypeError || (e && /fetch/i.test(e.message || ""))) return "Network error — check your connection and try again.";
+    return (e && e.message) || "Something went wrong.";
+  }
+  async function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try { await navigator.clipboard.writeText(text); return; } catch (e) { /* fall through */ }
+    }
+    var ta = document.createElement("textarea");
+    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); } finally { ta.remove(); }
+  }
+
+  /* fetch wrapper: throws Error with .status/.body/.waking set; caller reads err.message */
+  async function api(path, opts) {
+    var res;
+    try {
+      res = await fetch(path, opts || {});
+    } catch (e) {
+      throw e; // network failure — let errMsg() classify it
+    }
+    if (res.status === 503) {
+      var w = new Error("waking"); w.waking = true; w.status = 503; throw w;
+    }
+    if (!res.ok) {
+      var body = {};
+      try { body = await res.json(); } catch (e) { /* no body */ }
+      var err = new Error(body.error || ("Request failed (" + res.status + ")"));
+      err.status = res.status; err.body = body;
+      throw err;
+    }
+    return res;
+  }
+
+  /* ---------- runs rendering (shared: card view, suggest passage, cut result) ---------- */
+  function renderRunsHtml(runs) {
+    return (runs || []).map(function (r) {
+      var text = r[0], underlined = r[1], highlighted = r[2];
+      var cls = highlighted ? "run run-hl" : (underlined ? "run run-ul" : "run run-unread");
+      return '<span class="' + cls + '">' + escapeHtml(text) + "</span>";
+    }).join("");
+  }
+
+  /* ---------- accessible tabs ---------- */
+  function wireTabs() {
+    var tablist = document.querySelector('[role="tablist"]');
+    var tabs = Array.prototype.slice.call(tablist.querySelectorAll('[role="tab"]'));
+    function selectTab(tab) {
+      tabs.forEach(function (t) {
+        var selected = t === tab;
+        t.setAttribute("aria-selected", selected ? "true" : "false");
+        t.tabIndex = selected ? 0 : -1;
+        var panel = $(t.getAttribute("aria-controls"));
+        if (panel) panel.hidden = !selected;
+      });
+      tab.focus();
+    }
+    tabs.forEach(function (tab, i) {
+      tab.addEventListener("click", function () { selectTab(tab); });
+      tab.addEventListener("keydown", function (e) {
+        var ni = null;
+        if (e.key === "ArrowRight") ni = (i + 1) % tabs.length;
+        else if (e.key === "ArrowLeft") ni = (i - 1 + tabs.length) % tabs.length;
+        else if (e.key === "Home") ni = 0;
+        else if (e.key === "End") ni = tabs.length - 1;
+        if (ni !== null) { e.preventDefault(); selectTab(tabs[ni]); }
+      });
+    });
+  }
+
+  /* ---------- health status (same logic as landing.html) ---------- */
+  function wireHealth() {
+    var dot = $("statusDot"), text = $("statusText");
+    var MAX_RETRIES = 6, RETRY_MS = 15000, attempts = 0;
+    function setStatus(kind, msg) { dot.className = "dot " + kind; text.textContent = msg; }
+    function fetchWithTimeout(url, ms) {
+      var controller = ("AbortController" in window) ? new AbortController() : null;
+      var opts = controller ? { signal: controller.signal } : {};
+      var timer = controller ? setTimeout(function () { controller.abort(); }, ms) : null;
+      return fetch(url, opts).finally(function () { if (timer) clearTimeout(timer); });
+    }
+    function checkHealth() {
+      attempts++;
+      fetchWithTimeout("/health", 8000).then(function (res) {
+        if (res.status === 200) setStatus("online", "Online");
+        else if (res.status === 503) handleWaking();
+        else setStatus("down", "Down: try again shortly");
+      }).catch(function () { handleWaking(); });
+    }
+    function handleWaking() {
+      if (attempts < MAX_RETRIES) { setStatus("waking", "Waking up, about 1 minute…"); setTimeout(checkHealth, RETRY_MS); }
+      else setStatus("down", "Down: try again shortly");
+    }
+    checkHealth();
+  }
+
+  /* ================= SEARCH ================= */
+  var searchForm = $("searchForm"), searchQ = $("searchQ"), searchSort = $("searchSort"),
+      searchSide = $("searchSide"), searchEvent = $("searchEvent"),
+      searchStatus = $("searchStatus"), searchResults = $("searchResults");
+
+  function renderResults(results) {
+    if (!results.length) {
+      searchResults.innerHTML = '<li class="empty">No cards matched. Try a broader phrase, or: '
+        + '<button type="button" class="link-btn" data-ex="cards saying data centers raise electricity bills">data centers raise electricity bills</button></li>';
+      return;
+    }
+    searchResults.innerHTML = results.map(function (r) {
+      return '<li><button type="button" class="result-btn" data-id="' + escapeHtml(r.id) + '">'
+        + '<span class="result-tag">' + escapeHtml(r.tag) + "</span>"
+        + '<span class="result-meta">' + escapeHtml(r.cite) + " &middot; " + escapeHtml(String(r.year || "")) + " &middot; "
+        + escapeHtml((r.event || "").toUpperCase()) + (r.side ? " &middot; " + escapeHtml(r.side) : "")
+        + " &middot; read by " + (r.times_read || 0) + " teams</span>"
+        + '<span class="result-snippet">' + escapeHtml(r.highlighted || "") + "</span>"
+        + "</button></li>";
+    }).join("");
+  }
+
+  async function doSearch() {
+    var q = searchQ.value.trim();
+    if (!q) { searchStatus.textContent = "Type something to search for."; searchStatus.className = "status-line"; return; }
+    searchStatus.textContent = "Searching…"; searchStatus.className = "status-line";
+    searchResults.innerHTML = "";
+    var params = new URLSearchParams({ q: q, sort: searchSort.value });
+    if (searchSide.value) params.set("side", searchSide.value);
+    if (searchEvent.value) params.set("event", searchEvent.value);
+    try {
+      var res = await api("/api/search?" + params.toString());
+      var data = await res.json();
+      renderResults(data.results || []);
+      var n = (data.results || []).length;
+      searchStatus.textContent = n + " card" + (n === 1 ? "" : "s") + " found.";
+    } catch (e) {
+      searchStatus.textContent = "Error: " + errMsg(e); searchStatus.className = "status-line err";
+    }
+  }
+  searchForm.addEventListener("submit", function (e) { e.preventDefault(); doSearch(); });
+  searchResults.addEventListener("click", function (e) {
+    var btn = e.target.closest(".result-btn");
+    if (btn) { openCard(btn.dataset.id); return; }
+    var ex = e.target.closest("[data-ex]");
+    if (ex) { searchQ.value = ex.dataset.ex; doSearch(); }
+  });
+
+  /* ---------- card dialog (shared by search results & doc cards) ---------- */
+  var cardDialog = $("cardDialog"), cardDialogTitle = $("cardDialogTitle"), cardDialogCite = $("cardDialogCite"),
+      cardRuns = $("cardRuns"), readOnlyToggle = $("readOnlyToggle"), cardActionStatus = $("cardActionStatus");
+  var currentCardId = null, currentCardData = null;
+
+  async function openCard(id) {
+    currentCardId = id; currentCardData = null;
+    cardDialogTitle.textContent = "Loading…"; cardDialogCite.textContent = ""; cardRuns.innerHTML = "";
+    cardActionStatus.textContent = ""; readOnlyToggle.checked = false; cardRuns.classList.remove("read-only");
+    cardDialog.showModal();
+    try {
+      var res = await api("/api/card/" + encodeURIComponent(id) + "?view=full");
+      var data = await res.json();
+      currentCardData = data;
+      cardDialogTitle.textContent = data.tag;
+      cardDialogCite.textContent = data.cite_short + (data.cite_rest ? " " + data.cite_rest : "");
+      cardRuns.innerHTML = renderRunsHtml(data.runs);
+    } catch (e) {
+      cardDialogTitle.textContent = "Could not load card";
+      cardRuns.textContent = errMsg(e);
+    }
+  }
+  $("cardDialogClose").addEventListener("click", function () { cardDialog.close(); });
+  readOnlyToggle.addEventListener("change", function () { cardRuns.classList.toggle("read-only", readOnlyToggle.checked); });
+
+  $("cardAddDoc").addEventListener("click", function () {
+    if (!currentCardData) return;
+    addCardToDoc(currentCardId, currentCardData.tag + " — " + currentCardData.cite_short);
+    cardActionStatus.textContent = "Added to doc.";
+  });
+
+  function formatPlain(data) {
+    var body = data.runs.map(function (r) {
+      var text = r[0], ul = r[1], hl = r[2];
+      if (hl) return "==" + text.toUpperCase() + "==";
+      if (ul) return "_" + text + "_";
+      return text;
+    }).join("");
+    return data.tag + "\n" + data.cite_short + (data.cite_rest ? " " + data.cite_rest : "") + "\n\n" + body;
+  }
+  function formatHtml(data) {
+    var body = data.runs.map(function (r) {
+      var t = escapeHtml(r[0]), ul = r[1], hl = r[2];
+      if (hl) return '<mark style="background:#12a89e;color:#06413d;text-decoration:underline;">' + t + "</mark>";
+      if (ul) return "<u>" + t + "</u>";
+      return '<span style="color:#828474;font-size:.85em;">' + t + "</span>";
+    }).join("");
+    return "<p><strong>" + escapeHtml(data.tag) + "</strong></p><p>" + escapeHtml(data.cite_short)
+      + (data.cite_rest ? " " + escapeHtml(data.cite_rest) : "") + "</p><p>" + body + "</p>";
+  }
+  $("cardCopy").addEventListener("click", async function () {
+    if (!currentCardData) return;
+    var plain = formatPlain(currentCardData), html = formatHtml(currentCardData);
+    try {
+      if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
+        var item = new ClipboardItem({
+          "text/plain": new Blob([plain], { type: "text/plain" }),
+          "text/html": new Blob([html], { type: "text/html" })
+        });
+        await navigator.clipboard.write([item]);
+      } else {
+        await copyText(plain);
+      }
+      cardActionStatus.textContent = "Copied.";
+    } catch (e) {
+      cardActionStatus.textContent = "Could not copy: " + errMsg(e);
+    }
+  });
+
+  /* ================= FIND ================= */
+  var findForm = $("findForm"), findQ = $("findQ"), findStatus = $("findStatus"), findResults = $("findResults");
+  var lastFindResults = [];
+
+  function renderFindResults(data) {
+    var results = data.results || [];
+    var html = "";
+    if (!results.length) {
+      html = '<p class="empty">No results. Try: <button type="button" class="link-btn" data-ex="data center electricity demand study">data center electricity demand study</button></p>';
+    } else {
+      html = results.map(function (r, i) {
+        var meta = r.kind === "paper"
+          ? escapeHtml((r.authors || []).join(", ")) + (r.quals ? " — " + escapeHtml(r.quals) : "")
+          : escapeHtml(r.source || "");
+        return '<div class="find-item"><p class="find-title">' + escapeHtml(r.title)
+          + (r.pdf_url ? '<span class="badge">PDF</span>' : "") + "</p>"
+          + '<p class="find-meta">' + meta + " &middot; " + escapeHtml(r.date || "") + "</p>"
+          + '<p class="find-snippet">' + escapeHtml(r.snippet || "") + "</p>"
+          + '<button type="button" class="secondary open-cut-btn" data-i="' + i + '">Open &amp; cut</button></div>';
+      }).join("");
+    }
+    if (data.skipped && data.skipped.length) {
+      html += '<p class="callout">Some sources were skipped: ' + escapeHtml(data.skipped.join(", ")) + "</p>";
+    }
+    findResults.innerHTML = html;
+    lastFindResults = results;
+  }
+  async function doFind() {
+    var q = findQ.value.trim();
+    if (!q) { findStatus.textContent = "Type something to search for."; return; }
+    findStatus.textContent = "Searching papers & news…"; findStatus.className = "status-line";
+    findResults.innerHTML = "";
+    try {
+      var res = await api("/api/find?" + new URLSearchParams({ q: q }).toString());
+      var data = await res.json();
+      renderFindResults(data);
+      findStatus.textContent = (data.results || []).length + " result(s).";
+    } catch (e) {
+      findStatus.textContent = "Error: " + errMsg(e); findStatus.className = "status-line err";
+    }
+  }
+  findForm.addEventListener("submit", function (e) { e.preventDefault(); doFind(); });
+  findResults.addEventListener("click", function (e) {
+    var btn = e.target.closest(".open-cut-btn");
+    if (btn) { var r = lastFindResults[Number(btn.dataset.i)]; if (r) doFetch(r.url); return; }
+    var ex = e.target.closest("[data-ex]");
+    if (ex) { findQ.value = ex.dataset.ex; doFind(); }
+  });
+
+  /* ---------- fetch + cut workspace ---------- */
+  var fetchForm = $("fetchForm"), fetchUrl = $("fetchUrl"), fetchStatus = $("fetchStatus"),
+      cutWorkspace = $("cutWorkspace"), fetchParagraphs = $("fetchParagraphs"),
+      claimInput = $("claimInput"), suggestBtn = $("suggestBtn"), suggestStatus = $("suggestStatus"),
+      suggestWorkspace = $("suggestWorkspace"), passageEl = $("passageEl"),
+      citeTag = $("citeTag"), citeAuthor = $("citeAuthor"), citeDate = $("citeDate"),
+      citeTitle = $("citeTitle"), citePublisher = $("citePublisher"), citeUrl = $("citeUrl"), citeQuals = $("citeQuals"),
+      cutBtn = $("cutBtn"), cutStatus = $("cutStatus"), cutResult = $("cutResult");
+
+  var currentSourceId = null;
+  var suggest = { paragraph: "", start_quote: "", end_quote: "", flags: [] };
+
+  async function doFetch(url) {
+    if (!url) return;
+    fetchStatus.textContent = "Fetching…"; fetchStatus.className = "status-line";
+    suggestWorkspace.hidden = true; cutResult.hidden = true;
+    try {
+      var res = await api("/api/fetch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: url }) });
+      var data = await res.json();
+      currentSourceId = data.source_id;
+      fetchParagraphs.innerHTML = (data.paragraphs || []).map(function (p) { return "<li>" + escapeHtml(p) + "</li>"; }).join("");
+      var meta = data.meta || {};
+      citeAuthor.value = meta.author || ""; citeDate.value = meta.date || ""; citeTitle.value = meta.title || "";
+      citePublisher.value = meta.publisher || ""; citeUrl.value = meta.url || url; citeQuals.value = ""; citeTag.value = "";
+      cutWorkspace.hidden = false;
+      fetchStatus.textContent = "Loaded " + (data.paragraphs || []).length + " paragraphs.";
+      cutWorkspace.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" });
+    } catch (e) {
+      fetchStatus.textContent = "Error: " + errMsg(e); fetchStatus.className = "status-line err";
+    }
+  }
+  fetchForm.addEventListener("submit", function (e) { e.preventDefault(); doFetch(fetchUrl.value.trim()); });
+
+  function buildFlags(text, hl, ul) {
+    var flags = new Array(text.length).fill(0);
+    function mark(arr, val) {
+      (arr || []).forEach(function (sub) {
+        if (!sub) return;
+        var idx = 0, i;
+        while (idx <= text.length && (i = text.indexOf(sub, idx)) !== -1) {
+          for (var k = i; k < i + sub.length; k++) flags[k] = val;
+          idx = i + sub.length;
+        }
+      });
+    }
+    mark(hl, 1); mark(ul, 2);
+    return flags;
+  }
+  function groupFlags(text, flags) {
+    if (!text.length) return [["", false, false]];
+    var runs = [], start = 0;
+    for (var i = 1; i <= text.length; i++) {
+      if (i === text.length || flags[i] !== flags[start]) {
+        runs.push([text.slice(start, i), flags[start] === 2, flags[start] === 1]);
+        start = i;
+      }
+    }
+    return runs;
+  }
+  function flagsToArrays(text, flags) {
+    var highlight = [], underline = [], start = 0;
+    for (var i = 1; i <= text.length; i++) {
+      if (i === text.length || flags[i] !== flags[start]) {
+        var seg = text.slice(start, i);
+        if (flags[start] === 1) highlight.push(seg);
+        else if (flags[start] === 2) underline.push(seg);
+        start = i;
+      }
+    }
+    return { highlight: highlight, underline: underline };
+  }
+  function renderPassage() { passageEl.innerHTML = renderRunsHtml(groupFlags(suggest.paragraph, suggest.flags)); }
+
+  /* clone the range from container-start to selection-start and measure its length: a standard,
+     dependency-free way to map a DOM Selection back to a plain-text character offset. */
+  function getSelectionOffsets(container) {
+    var sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return null;
+    var range = sel.getRangeAt(0);
+    if (!container.contains(range.commonAncestorContainer)) return null;
+    var text = range.toString();
+    if (!text) return null;
+    var pre = document.createRange();
+    pre.selectNodeContents(container);
+    pre.setEnd(range.startContainer, range.startOffset);
+    var start = pre.toString().length;
+    return { start: start, end: start + text.length };
+  }
+  function applyMark(val) {
+    var off = getSelectionOffsets(passageEl);
+    if (!off) { suggestStatus.textContent = "Select some text in the passage first."; return; }
+    for (var k = off.start; k < off.end; k++) suggest.flags[k] = val;
+    renderPassage();
+  }
+  $("markHighlight").addEventListener("click", function () { applyMark(1); });
+  $("markUnderline").addEventListener("click", function () { applyMark(2); });
+  $("markClear").addEventListener("click", function () { applyMark(0); });
+
+  async function doSuggest() {
+    var claim = claimInput.value.trim();
+    if (!claim) { suggestStatus.textContent = "Enter a claim first."; return; }
+    if (!currentSourceId) { suggestStatus.textContent = "Fetch a source first."; return; }
+    suggestStatus.textContent = "Suggesting…"; suggestStatus.className = "status-line";
+    try {
+      var res = await api("/api/suggest", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source_id: currentSourceId, claim: claim }) });
+      var data = await res.json();
+      suggest.paragraph = data.paragraph || "";
+      suggest.start_quote = data.start_quote || "";
+      suggest.end_quote = data.end_quote || "";
+      suggest.flags = buildFlags(suggest.paragraph, data.highlight, data.underline);
+      renderPassage();
+      suggestWorkspace.hidden = false;
+      suggestStatus.textContent = "Suggested passage" + (data.score != null ? " (score " + Number(data.score).toFixed(2) + ")" : "") + ". Adjust highlighting, then fill in the cite.";
+    } catch (e) {
+      suggestStatus.textContent = "Error: " + errMsg(e); suggestStatus.className = "status-line err";
+    }
+  }
+  suggestBtn.addEventListener("click", doSuggest);
+
+  async function doCut() {
+    if (!currentSourceId) { cutStatus.textContent = "Fetch a source first."; return; }
+    if (!citeQuals.value.trim()) { cutStatus.textContent = "Author qualifications are required."; citeQuals.focus(); return; }
+    var marks = flagsToArrays(suggest.paragraph, suggest.flags);
+    var body = {
+      source_id: currentSourceId,
+      tag: citeTag.value.trim(), author: citeAuthor.value.trim(), date: citeDate.value.trim(),
+      title: citeTitle.value.trim(), publisher: citePublisher.value.trim(), url: citeUrl.value.trim(),
+      quals: citeQuals.value.trim(), start_quote: suggest.start_quote, end_quote: suggest.end_quote,
+      paragraph: suggest.paragraph, highlight: marks.highlight, underline: marks.underline
+    };
+    cutStatus.textContent = "Cutting…"; cutStatus.className = "status-line"; cutResult.hidden = true;
+    try {
+      var res = await api("/api/cut", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      var data = await res.json();
+      var warnings = (data.warnings || []).map(function (w) { return "<li>" + escapeHtml(w) + "</li>"; }).join("");
+      cutResult.innerHTML = '<h3 class="serif">' + escapeHtml(data.card.tag) + "</h3>"
+        + '<p class="cite">' + escapeHtml(data.card.cite_short) + (data.card.cite_rest ? " " + escapeHtml(data.card.cite_rest) : "") + "</p>"
+        + '<div class="runs">' + renderRunsHtml(data.card.runs) + "</div>"
+        + (warnings ? '<ul class="callout">' + warnings + "</ul>" : "")
+        + '<button type="button" class="secondary" id="cutAddDoc">Add to doc</button>';
+      cutResult.hidden = false;
+      $("cutAddDoc").addEventListener("click", function () {
+        addCardToDoc(data.card.id, data.card.tag + " — " + data.card.cite_short);
+        cutStatus.textContent = "Added to doc.";
+      });
+      cutStatus.textContent = "Card cut and verified.";
+    } catch (e) {
+      if (e.status === 422) {
+        cutResult.innerHTML = '<p class="banner-error">' + escapeHtml(e.message) + "</p>";
+        cutResult.hidden = false;
+        cutStatus.textContent = "Rejected — the text didn't match the source verbatim.";
+      } else {
+        cutStatus.textContent = "Error: " + errMsg(e);
+      }
+      cutStatus.className = "status-line err";
+    }
+  }
+  cutBtn.addEventListener("click", doCut);
+
+  /* ================= DOC BUILDER ================= */
+  var TYPE_LABELS = { pocket: "Pocket", hat: "Hat", block: "Block", tag: "Tag", text: "Text", card: "Card" };
+  var docTitle = $("docTitle"), docItemsEl = $("docItems");
+  var doc = loadDoc();
+
+  function loadDoc() {
+    try {
+      var raw = localStorage.getItem("pf-doc");
+      if (raw) { var parsed = JSON.parse(raw); if (parsed && Array.isArray(parsed.items)) return parsed; }
+    } catch (e) { /* ignore — start fresh */ }
+    return { title: "Untitled doc", items: [] };
+  }
+  function saveDoc() {
+    try { localStorage.setItem("pf-doc", JSON.stringify(doc)); } catch (e) { /* storage unavailable — doc still works this session */ }
+  }
+  function addCardToDoc(id, label) {
+    doc.items.push({ type: "card", id: id, label: label });
+    saveDoc(); renderDocPanel();
+  }
+
+  function renderDocPanel() {
+    docTitle.value = doc.title;
+    if (!doc.items.length) {
+      docItemsEl.innerHTML = '<li class="empty">No items yet. Add a heading or text below, or "Add to doc" from a card.</li>';
+      return;
+    }
+    docItemsEl.innerHTML = doc.items.map(function (it, i) {
+      var body;
+      if (it.type === "card") body = '<span class="doc-card-label">' + escapeHtml(it.label) + "</span>";
+      else if (it.type === "text") body = '<textarea data-i="' + i + '" class="doc-text" aria-label="Text item ' + (i + 1) + '">' + escapeHtml(it.text) + "</textarea>";
+      else body = '<input data-i="' + i + '" class="doc-heading" aria-label="' + TYPE_LABELS[it.type] + " item " + (i + 1) + '" value="' + escapeHtml(it.text) + '">';
+      return '<li class="doc-item"><span class="doc-type">' + TYPE_LABELS[it.type] + "</span>" + body
+        + '<span class="doc-controls">'
+        + '<button type="button" data-act="up" data-i="' + i + '" aria-label="Move item ' + (i + 1) + ' up"' + (i === 0 ? " disabled" : "") + ">&uarr;</button>"
+        + '<button type="button" data-act="down" data-i="' + i + '" aria-label="Move item ' + (i + 1) + ' down"' + (i === doc.items.length - 1 ? " disabled" : "") + ">&darr;</button>"
+        + '<button type="button" data-act="remove" data-i="' + i + '" aria-label="Remove item ' + (i + 1) + '">Remove</button>'
+        + "</span></li>";
+    }).join("");
+  }
+  docItemsEl.addEventListener("click", function (e) {
+    var btn = e.target.closest("button[data-act]"); if (!btn) return;
+    var i = Number(btn.dataset.i), act = btn.dataset.act;
+    if (act === "up" && i > 0) { var a = doc.items[i - 1]; doc.items[i - 1] = doc.items[i]; doc.items[i] = a; }
+    else if (act === "down" && i < doc.items.length - 1) { var b = doc.items[i + 1]; doc.items[i + 1] = doc.items[i]; doc.items[i] = b; }
+    else if (act === "remove") { doc.items.splice(i, 1); }
+    saveDoc(); renderDocPanel();
+  });
+  docItemsEl.addEventListener("change", function (e) {
+    var i = Number(e.target.dataset.i);
+    if (Number.isNaN(i) || !doc.items[i]) return;
+    doc.items[i].text = e.target.value;
+    saveDoc();
+  });
+  docTitle.addEventListener("change", function () { doc.title = docTitle.value; saveDoc(); });
+
+  $("addHeadingForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var type = $("headingType").value, text = $("headingText").value.trim();
+    doc.items.push({ type: type, text: text || TYPE_LABELS[type] });
+    $("headingText").value = ""; saveDoc(); renderDocPanel();
+  });
+  $("addTextForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var text = $("freeText").value.trim();
+    if (!text) return;
+    doc.items.push({ type: "text", text: text });
+    $("freeText").value = ""; saveDoc(); renderDocPanel();
+  });
+
+  function itemsForExport() {
+    return doc.items.map(function (it) {
+      if (it.type === "card") return { card: it.id };
+      var o = {}; o[it.type] = it.text || ""; return o;
+    });
+  }
+  async function doExport(format) {
+    if (!doc.items.length) { $("exportStatus").textContent = "Add something to the doc first."; return; }
+    $("exportStatus").textContent = "Exporting…"; $("exportStatus").className = "status-line";
+    try {
+      var res = await api("/api/export", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: doc.title, items: itemsForExport(), format: format })
+      });
+      var blob = await res.blob();
+      var cd = res.headers.get("Content-Disposition") || "";
+      var m = /filename="?([^";]+)"?/.exec(cd);
+      var filename = m ? m[1] : (doc.title || "debate-doc").replace(/[^\w.-]+/g, "_") + ".docx";
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a"); a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      $("exportStatus").textContent = "Downloaded " + filename + ".";
+    } catch (e) {
+      $("exportStatus").textContent = "Error: " + errMsg(e); $("exportStatus").className = "status-line err";
+    }
+  }
+  $("exportDocx").addEventListener("click", function () { doExport("docx"); });
+  $("exportGdocs").addEventListener("click", function () { doExport("gdocs"); });
+
+  /* ================= ASK THE AI ================= */
+  var chatLog = $("chatLog"), chatForm = $("chatForm"), chatInput = $("chatInput"), chatStatus = $("chatStatus"),
+      modelStatus = $("modelStatus");
+  var chatMessages = [];
+  var systemPrompt = null, toolsSchema = null;
+  var modelSource = "free";
+  var puterLoading = null;
+
+  function renderMarkdown(raw) {
+    var s = escapeHtml(raw);
+    s = s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
+    var lines = s.split("\n"), html = "", inList = false;
+    lines.forEach(function (line) {
+      if (/^\s*[-*]\s+/.test(line)) {
+        if (!inList) { html += "<ul>"; inList = true; }
+        html += "<li>" + line.replace(/^\s*[-*]\s+/, "") + "</li>";
+      } else {
+        if (inList) { html += "</ul>"; inList = false; }
+        if (line.trim()) html += "<p>" + line + "</p>";
+      }
+    });
+    if (inList) html += "</ul>";
+    return html;
+  }
+  function appendChatMsg(role, text) {
+    var div = document.createElement("div");
+    div.className = "msg msg-" + role;
+    div.innerHTML = renderMarkdown(text || "");
+    chatLog.appendChild(div);
+    chatLog.scrollTop = chatLog.scrollHeight;
+  }
+  function appendToolStep(name, argsStr, resultStr, isError) {
+    var details = document.createElement("details");
+    details.className = "tool-step" + (isError ? " tool-error" : "");
+    var summary = document.createElement("summary");
+    summary.textContent = "Tool: " + name;
+    details.appendChild(summary);
+    var pre = document.createElement("pre");
+    pre.textContent = "Arguments: " + argsStr + "\n\nResult: " + resultStr;
+    details.appendChild(pre);
+    chatLog.appendChild(details);
+    chatLog.scrollTop = chatLog.scrollHeight;
+  }
+  function setChatBusy(busy) {
+    chatInput.disabled = busy;
+    chatForm.querySelector('button[type="submit"]').disabled = busy;
+  }
+  function showChatError(e) {
+    if (e && e.exhausted) {
+      chatStatus.textContent = 'The free AI is used up for today. Switch to "Sign in with Puter" above for your own free allowance, or use the hand-off buttons below.';
+    } else {
+      chatStatus.textContent = "Error: " + errMsg(e);
+    }
+    chatStatus.className = "status-line err";
+  }
+
+  async function ensureSystemAndTools() {
+    if (systemPrompt !== null && toolsSchema !== null) return;
+    var sysRes = await api("/api/system"), toolsRes = await api("/api/tools");
+    var sysData = await sysRes.json(), toolsData = await toolsRes.json();
+    systemPrompt = sysData.prompt || "";
+    toolsSchema = Array.isArray(toolsData) ? toolsData : (toolsData.tools || []);
+  }
+
+  /* Puter.js: loaded only after the user picks "Sign in with Puter". puter.ai.chat()
+     prompts its own sign-in popup automatically on first call — no separate signIn() needed. */
+  function ensurePuter() {
+    if (window.puter) return Promise.resolve();
+    if (puterLoading) return puterLoading;
+    puterLoading = new Promise(function (resolve, reject) {
+      var s = document.createElement("script");
+      s.src = "https://js.puter.com/v2/";
+      s.onload = function () { resolve(); };
+      s.onerror = function () { reject(new Error("Could not load Puter.js")); };
+      document.head.appendChild(s);
+    });
+    return puterLoading;
+  }
+
+  async function callModel() {
+    if (modelSource === "free") {
+      var res;
+      try {
+        res = await api("/api/llm", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: chatMessages, tools: toolsSchema })
+        });
+      } catch (e) {
+        if (e.status === 429 && e.body && e.body.exhausted) { var ex = new Error("exhausted"); ex.exhausted = true; throw ex; }
+        throw e;
+      }
+      var data = await res.json();
+      return data.message;
+    }
+    await ensurePuter();
+    // ponytail: model id picked for tool-calling support; update if Puter changes its capable-model roster.
+    var result = await puter.ai.chat(chatMessages, { tools: toolsSchema, model: "gpt-4o" });
+    return result && result.message ? result.message : result;
+  }
+
+  async function runAgentLoop() {
+    var steps = 0;
+    setChatBusy(true);
+    try {
+      while (steps < 12) {
+        steps++;
+        var msg = await callModel();
+        if (!msg) break;
+        chatMessages.push(msg);
+        if (msg.content) appendChatMsg("assistant", msg.content);
+        if (!msg.tool_calls || !msg.tool_calls.length) break;
+        for (var i = 0; i < msg.tool_calls.length; i++) {
+          var call = msg.tool_calls[i];
+          var name = call.function.name;
+          var args = {};
+          try { args = JSON.parse(call.function.arguments || "{}"); } catch (e) { /* leave args empty */ }
+          var toolRes;
+          try {
+            var r = await api("/api/tool/" + encodeURIComponent(name), {
+              method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ arguments: args })
+            });
+            toolRes = await r.json();
+          } catch (e) {
+            toolRes = { content: "Error: " + errMsg(e), is_error: true };
+          }
+          appendToolStep(name, JSON.stringify(args), toolRes.content, toolRes.is_error);
+          chatMessages.push({ role: "tool", tool_call_id: call.id, content: toolRes.content });
+        }
+      }
+    } catch (e) {
+      showChatError(e);
+    } finally {
+      setChatBusy(false);
+    }
+  }
+
+  async function sendChat() {
+    var text = chatInput.value.trim();
+    if (!text) return;
+    chatStatus.textContent = "Thinking…"; chatStatus.className = "status-line";
+    try {
+      await ensureSystemAndTools();
+    } catch (e) {
+      showChatError(e); return;
+    }
+    if (!chatMessages.length) chatMessages.push({ role: "system", content: systemPrompt });
+    chatMessages.push({ role: "user", content: text });
+    appendChatMsg("user", text);
+    chatInput.value = "";
+    await runAgentLoop();
+    if (chatStatus.className.indexOf("err") === -1) chatStatus.textContent = "";
+  }
+  chatForm.addEventListener("submit", function (e) { e.preventDefault(); sendChat(); });
+  document.querySelectorAll('.try-prompts [data-ex]').forEach(function (b) {
+    b.addEventListener("click", function () { chatInput.value = b.dataset.ex; sendChat(); });
+  });
+
+  document.querySelectorAll('input[name="modelSrc"]').forEach(function (radio) {
+    radio.addEventListener("change", async function (e) {
+      modelSource = e.target.value;
+      if (modelSource === "puter") {
+        modelStatus.textContent = "Loading Puter…";
+        try { await ensurePuter(); modelStatus.textContent = "Puter ready — it will prompt you to sign in on your first message."; }
+        catch (e2) { modelStatus.textContent = "Could not load Puter.js: " + errMsg(e2); }
+      } else {
+        modelStatus.textContent = "";
+      }
+    });
+  });
+
+  /* ---------- hand-off ---------- */
+  async function buildHandoffPrompt() {
+    var userReq = $("handoffPrompt").value.trim();
+    if (!userReq) {
+      for (var i = chatMessages.length - 1; i >= 0; i--) {
+        if (chatMessages[i].role === "user") { userReq = chatMessages[i].content; break; }
+      }
+    }
+    try { await ensureSystemAndTools(); } catch (e) { /* proceed without it if the server is unreachable */ }
+    var cardsText = "";
+    for (var j = 0; j < doc.items.length; j++) {
+      var it = doc.items[j];
+      if (it.type !== "card") continue;
+      try {
+        var res = await api("/api/card/" + encodeURIComponent(it.id) + "?view=read");
+        var data = await res.json();
+        cardsText += "\n\n" + data.tag + "\n" + data.cite_short + (data.cite_rest ? " " + data.cite_rest : "") + "\n"
+          + (data.runs || []).map(function (r) { return r[0]; }).join("");
+      } catch (e) { /* card may have expired — skip it */ }
+    }
+    return (systemPrompt || "") + "\n\n--- Cards in my doc ---" + (cardsText || " (none yet)") + "\n\n--- My request ---\n" + (userReq || "(none given)");
+  }
+  $("handoffChatGPT").addEventListener("click", async function () {
+    var status = $("handoffStatus");
+    status.textContent = "Preparing hand-off…"; status.className = "status-line";
+    try {
+      var prompt = await buildHandoffPrompt();
+      if (prompt.length < 6000) {
+        window.open("https://chatgpt.com/?q=" + encodeURIComponent(prompt), "_blank", "noopener");
+        status.textContent = "Opened ChatGPT with your prompt filled in.";
+      } else {
+        await copyText(prompt);
+        window.open("https://chatgpt.com", "_blank", "noopener");
+        status.textContent = "Prompt copied to clipboard (too long to prefill) — paste it into ChatGPT.";
+      }
+    } catch (e) { status.textContent = "Could not prepare hand-off: " + errMsg(e); status.className = "status-line err"; }
+  });
+  $("handoffGemini").addEventListener("click", async function () {
+    var status = $("handoffStatus");
+    status.textContent = "Preparing hand-off…"; status.className = "status-line";
+    try {
+      var prompt = await buildHandoffPrompt();
+      await copyText(prompt);
+      window.open("https://gemini.google.com", "_blank", "noopener");
+      status.textContent = "Prompt copied to clipboard — paste it into Gemini.";
+    } catch (e) { status.textContent = "Could not prepare hand-off: " + errMsg(e); status.className = "status-line err"; }
+  });
+
+  /* ---------- init ---------- */
+  wireTabs();
+  wireHealth();
+  renderDocPanel();
+})();
+</script>
+</body>
+</html>

@@ -181,3 +181,42 @@ def test_e2e_stats_have_no_content(server):
     stats = httpx.get(f"{server}/stats").json()
     text = str(stats)
     assert "nuclear" not in text and "Harris" not in text  # counts only, never queries or card text
+
+
+# --- web app API (same process as the connector) -------------------------------------------------
+
+def test_api_search_card_cut_export(server):
+    hits = httpx.get(f"{server}/api/search", params={"q": "economic decline war", "mode": "keyword"}).json()
+    assert hits["results"][0]["id"] == "lib:1"
+    card = httpx.get(f"{server}/api/card/lib:1").json()
+    assert card["tag"].startswith("Economic decline") and any(h for _, _, h in card["runs"])
+    cut = httpx.post(f"{server}/api/cut", json={
+        "source_id": "lib:1", "tag": "Decline raises war risk", "author": "Harris", "date": "2009", "title": "t",
+        "publisher": "p", "url": "http://x.test", "quals": "q", "start_quote": "Context",
+        "end_quote": "great power war", "highlight": ["great power war"]}).json()
+    assert cut["card"]["id"].startswith("c_")
+    bad = httpx.post(f"{server}/api/cut", json={
+        "source_id": "lib:1", "tag": "x", "author": "a", "date": "2009", "title": "t", "publisher": "p",
+        "url": "u", "quals": "q", "start_quote": "Context", "end_quote": "great power war",
+        "highlight": ["made up words"]})
+    assert bad.status_code == 422 and "REJECTED" in bad.json()["error"]
+    doc = httpx.post(f"{server}/api/export", json={"title": "Neg", "items": [{"card": cut["card"]["id"]}]})
+    assert doc.status_code == 200 and doc.content[:2] == b"PK"
+
+
+def test_api_fetch_is_guarded(server):
+    r = httpx.post(f"{server}/api/fetch", json={"url": f"{server}/health"})
+    assert r.status_code == 400 and ("private" in r.json()["error"] or "standard ports" in r.json()["error"])
+
+
+def test_api_chat_plumbing(server):
+    tools = httpx.get(f"{server}/api/tools", timeout=60).json()["tools"]
+    names = {t["function"]["name"] for t in tools}
+    assert {"search_cards", "cut_card", "find_sources", "suggest_cut"} <= names and "caselist_team" not in names
+    ran = httpx.post(f"{server}/api/tool/get_card", json={"arguments": {"card_id": "lib:1"}}).json()
+    assert not ran["is_error"] and "Harris 09" in ran["content"]
+    missing = httpx.post(f"{server}/api/tool/get_card", json={"arguments": {"card_id": "c_000000000000"}}).json()
+    assert missing["is_error"] and "expired" in missing["content"]
+    assert "evidence" in httpx.get(f"{server}/api/system").json()["prompt"].lower()
+    no_keys = httpx.post(f"{server}/api/llm", json={"messages": [{"role": "user", "content": "hi"}]})
+    assert no_keys.status_code == 429 and no_keys.json()["exhausted"]  # no provider keys in tests

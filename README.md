@@ -10,6 +10,14 @@ A Public Forum debate partner for the AI you already use. Ask it things like:
 
 It knows PF jargon, speech times, tactics, weighing and the standard impact chains. It never makes up evidence.
 
+## Free web app (any age, no account)
+**https://debate.peshcompsci.org/app** runs entirely in your browser:
+- plain-English search of about 173k cut cards
+- finding new papers and news
+- auto-suggested cuts with click-to-adjust highlighting and the verbatim check
+- a doc builder that exports to Word or Google Docs
+- an AI chat, powered by a free shared pool, your own free Puter account, or a one-click hand-off to your ChatGPT/Gemini
+
 ## Pick your app (no terminal needed)
 
 | App | What you get | Setup |
@@ -57,8 +65,10 @@ Download **[instructions.md](https://github.com/SujayGG/pf-debate-mcp/releases/l
 | Tool | What it does |
 |---|---|
 | `pf_guide` | PF knowledge: glossary, format, tactics, impacts, evidence ethics, how to build cases/blocks/scouts |
-| `search_cards` / `get_card` | Local library of cut cards from [OpenCaselist](https://huggingface.co/datasets/Yusuf5/OpenCaselist) (PF, LD, Policy, camp files; 2014–2022), with "popular" ranking by how many teams read a card |
+| `search_cards` / `get_card` | Plain-English or keyword search (meaning + keywords) over the local library of about 173k cut cards from [OpenCaselist](https://huggingface.co/datasets/Yusuf5/OpenCaselist) (PF, LD, Policy, camp files; 2014–2022), with "popular" ranking by how many teams read a card |
+| `find_sources` | New evidence: recent papers (author affiliations for quals, free PDFs) and current news. Free, no API keys |
 | `fetch_source` | Any article or PDF, turned into clean paragraphs plus citation metadata |
+| `suggest_cut` | Proposes the best passage and highlights for your claim (exact source text) |
 | `cut_card` | Cuts a card; the text must match the source verbatim or it's rejected. Full NSDA citations. |
 | `export_doc` | A Verbatim-compatible .docx (Pocket/Hat/Block/Tag, underline, highlight), or `format="gdocs"` for a Google-Docs-ready page |
 | `caselist_search` / `caselist_team` / `caselist_download` | OpenCaselist with your Tabroom login: round reports, cites, open-source docs as cards |

@@ -171,6 +171,7 @@ def search_cards(query: str, limit: int) -> list[dict]:
 def save_export(filename: str, data: bytes) -> str:
     """Hosted: keep an exported file for an hour and return its download URL."""
     token = secrets.token_urlsafe(16)
+    filename = re.sub(r"[^A-Za-z0-9._-]+", "-", filename)[:100] or "pf-doc"  # safe in URLs and headers
     _files.put(token, (filename, data), len(data))
     return f"{PUBLIC_URL}/files/{token}/{filename}"
 

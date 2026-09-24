@@ -300,7 +300,8 @@ def _match(query: str, op: str) -> str:
 
 
 def search(query: str, limit: int = 10, year_from: int | None = None, side: str | None = None,
-           event: str | None = None, sort: str = "relevance") -> list[dict]:
+           event: str | None = None, sort: str = "relevance", strict: bool = False) -> list[dict]:
+    """Keyword search. strict=True: all words must match (no any-word fallback)."""
     con = _ready()
     if not con or not re.search(r"\w", query):
         return []
@@ -321,13 +322,38 @@ def search(query: str, limit: int = 10, year_from: int | None = None, side: str 
         select c.id, c.tag, c.cite, c.year, c.event, c.side, c.reads, c.heads, c.spoken, h.score
         from hits h join cards c on c.id = h.id where 1=1 {filters}
         order by {order} limit ?"""
-    for op in ("AND", "OR"):  # all words first; fall back to any word
+    for op in ("AND",) if strict else ("AND", "OR"):  # all words first; fall back to any word
         rows = con.execute(sql, [_match(query, op), *args, limit]).fetchall()
         if rows:
             break
-    return [{"id": f"lib:{r['id']}", "tag": r["tag"], "cite": r["cite"], "year": r["year"],
-             "event": r["event"], "side": r["side"], "times_read": r["reads"], "headings": r["heads"],
-             "highlighted": (r["spoken"] or "")[:240]} for r in rows]
+    return [_row_dict(r) for r in rows]
+
+
+def _row_dict(r) -> dict:
+    return {"id": f"lib:{r['id']}", "tag": r["tag"], "cite": r["cite"], "year": r["year"],
+            "event": r["event"], "side": r["side"], "times_read": r["reads"], "headings": r["heads"],
+            "highlighted": (r["spoken"] or "")[:240]}
+
+
+def rows(card_ids: list[str], year_from: int | None = None, side: str | None = None,
+         event: str | None = None) -> list[dict]:
+    """Search-result rows for lib:N ids, applying the same filters as search()."""
+    con = _ready()
+    ids = [int(c[4:]) for c in card_ids if c.startswith("lib:")]
+    if not con or not ids:
+        return []
+    sql = f"select * from cards c where c.id in ({','.join('?' * len(ids))})"
+    args: list = list(ids)
+    if year_from:
+        sql += " and (c.year >= ? or c.year is null)"
+        args.append(year_from)
+    if side:
+        sql += " and upper(substr(c.side, 1, 1)) = ?"
+        args.append(side[0].upper())
+    if event:
+        sql += " and c.event = ?"
+        args.append(event.lower())
+    return [_row_dict(r) for r in con.execute(sql, args).fetchall()]
 
 
 def get(card_id: int) -> dict | None:

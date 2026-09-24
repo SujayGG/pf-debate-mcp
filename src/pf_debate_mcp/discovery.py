@@ -1,0 +1,176 @@
+"""Find citable, credentialed evidence: papers (OpenAlex) and news (GDELT, falling back to
+Google News RSS). Free, keyless, adds no dependencies beyond httpx (already required).
+
+Papers and news are fetched in parallel (each source gets its own thread and an 8s timeout);
+a source that fails or times out is reported in "skipped" rather than losing the others' results.
+"""
+
+import concurrent.futures as cf
+import json
+import time
+from email.utils import parsedate_to_datetime
+from urllib.parse import urlencode
+from xml.etree import ElementTree as ET
+
+import httpx
+
+from .store import _ByteLRU
+
+OPENALEX = "https://api.openalex.org/works"
+GDELT = "https://api.gdeltproject.org/api/v2/doc/doc"
+GNEWS = "https://news.google.com/rss/search"
+MAILTO = "pf-debate@users.noreply.github.com"
+TIMEOUT = 8.0  # seconds, per source
+_HEADERS = {"User-Agent": "pf-debate-mcp (citable evidence search)"}
+
+_cache = _ByteLRU(20_000_000, ttl=3600)  # (query, kinds, limit) -> {"results", "skipped"}, 1h
+
+
+def _url(base: str, params: dict) -> str:
+    return f"{base}?{urlencode(params)}"
+
+
+def _get(url: str) -> httpx.Response:
+    """GET with one retry on 429, honoring Retry-After (capped at 5s so a lazy server can't stall us)."""
+    r = httpx.get(url, timeout=TIMEOUT, headers=_HEADERS)
+    if r.status_code == 429:
+        time.sleep(min(float(r.headers.get("Retry-After", 1)), 5.0))
+        r = httpx.get(url, timeout=TIMEOUT, headers=_HEADERS)
+    r.raise_for_status()
+    return r
+
+
+def _reason(e: Exception) -> str:
+    if isinstance(e, httpx.HTTPStatusError):
+        return f"HTTP {e.response.status_code}"
+    if isinstance(e, httpx.TimeoutException):
+        return "timeout"
+    return str(e) or type(e).__name__
+
+
+# ---- papers: OpenAlex --------------------------------------------------
+
+def _abstract(inv_index: dict | None) -> str:
+    """OpenAlex ships abstracts as a word -> [positions] inverted index; rebuild the text."""
+    if not inv_index:
+        return ""
+    length = max(p for positions in inv_index.values() for p in positions) + 1
+    words = [""] * length
+    for word, positions in inv_index.items():
+        for p in positions:
+            words[p] = word
+    return " ".join(w for w in words if w)[:300]
+
+
+def _map_paper(w: dict) -> dict:
+    best = w.get("best_oa_location") or {}
+    url = best.get("landing_page_url") or w.get("doi") or w.get("id")
+    authorships = w.get("authorships") or []
+    authors = [a["author"]["display_name"] for a in authorships[:4] if a.get("author", {}).get("display_name")]
+    quals = None
+    if authorships:
+        insts = authorships[0].get("institutions") or []
+        quals = ", ".join(i["display_name"] for i in insts if i.get("display_name")) or None
+    source = ((w.get("primary_location") or {}).get("source") or {}).get("display_name")
+    return {"kind": "paper", "title": w.get("title"), "url": url, "authors": authors, "quals": quals,
+            "date": w.get("publication_date"), "source": source,
+            "snippet": _abstract(w.get("abstract_inverted_index")), "pdf_url": best.get("pdf_url")}
+
+
+def _fetch_papers(query: str, n: int) -> list[dict]:
+    params = {"search": query, "per-page": n, "filter": "has_abstract:true",
+              "sort": "relevance_score:desc", "mailto": MAILTO}
+    data = _get(_url(OPENALEX, params)).json()
+    return [_map_paper(w) for w in data.get("results", [])]
+
+
+# ---- news: GDELT, falling back to Google News RSS ----------------------
+
+def _map_gdelt(a: dict) -> dict:
+    seen = a.get("seendate") or ""
+    date = f"{seen[0:4]}-{seen[4:6]}-{seen[6:8]}" if len(seen) >= 8 else None
+    return {"kind": "news", "title": a.get("title"), "url": a.get("url"), "authors": [], "quals": None,
+            "date": date, "source": a.get("domain"), "snippet": ""}
+
+
+def _fetch_gdelt(query: str, n: int) -> list[dict]:
+    params = {"query": query, "mode": "ArtList", "format": "json", "maxrecords": n, "sort": "DateDesc"}
+    r = _get(_url(GDELT, params))
+    try:
+        data = r.json()
+    except ValueError:
+        raise RuntimeError("non-JSON response") from None  # GDELT returns plain-text errors, not JSON
+    return [_map_gdelt(a) for a in data.get("articles", [])]
+
+
+def _rfc822_date(s: str) -> str | None:
+    try:
+        return parsedate_to_datetime(s).strftime("%Y-%m-%d")
+    except (TypeError, ValueError):
+        return None
+
+
+def _fetch_gnews(query: str, n: int) -> list[dict]:
+    params = {"q": query, "hl": "en-US", "gl": "US", "ceid": "US:en"}
+    root = ET.fromstring(_get(_url(GNEWS, params)).text)
+    out = []
+    for item in root.findall(".//item")[:n]:
+        source_el = item.find("source")
+        out.append({"kind": "news", "title": (item.findtext("title") or "").strip(),
+                    "url": (item.findtext("link") or "").strip(), "authors": [], "quals": None,
+                    "date": _rfc822_date(item.findtext("pubDate") or ""),
+                    "source": source_el.text if source_el is not None else None, "snippet": ""})
+    return out
+
+
+# ---- orchestration -------------------------------------------------------
+
+def _dedupe(items: list[dict]) -> list[dict]:
+    seen, out = set(), []
+    for it in items:
+        u = it.get("url")
+        if u and u in seen:
+            continue
+        seen.add(u)
+        out.append(it)
+    return out
+
+
+def find_sources(query: str, kinds: tuple[str, ...] = ("papers", "news"), limit: int = 10) -> dict:
+    """Search OpenAlex for papers and GDELT/Google News for news, for debaters who need citable,
+    credentialed evidence (not chat answers). Runs selected sources in parallel; a failed source
+    is skipped, not fatal. Results: papers first (by relevance), then news (newest first), each
+    capped at `limit` and deduped by URL. Cached for 1h per (query, kinds, limit)."""
+    key = f"{query}\n{sorted(kinds)}\n{limit}"
+    if (hit := _cache.get(key)) is not None:
+        return hit
+
+    jobs = [("openalex", _fetch_papers)] if "papers" in kinds else []
+    if "news" in kinds:
+        jobs.append(("gdelt", _fetch_gdelt))
+
+    got, skipped = {}, []
+    with cf.ThreadPoolExecutor(max_workers=max(1, len(jobs))) as ex:
+        futs = {ex.submit(fn, query, limit): name for name, fn in jobs}
+        for fut, name in futs.items():
+            try:
+                got[name] = fut.result()
+            except Exception as e:
+                skipped.append(f"{name}: {_reason(e)}")
+
+    papers = _dedupe(got.get("openalex", []))[:limit] if "papers" in kinds else []
+
+    news = []
+    if "news" in kinds:
+        gdelt_hits = got.get("gdelt")
+        news = gdelt_hits or []
+        if gdelt_hits is None or len(gdelt_hits) < limit // 2:
+            try:
+                news = news + _fetch_gnews(query, limit)  # GDELT thin or down: top up with Google News RSS
+            except Exception as e:
+                skipped.append(f"gnews: {_reason(e)}")
+        news = sorted(_dedupe(news), key=lambda x: x.get("date") or "", reverse=True)[:limit]
+
+    result = {"results": papers + news, "skipped": skipped}
+    _cache.put(key, result, len(json.dumps(result, default=str)))
+    return result
