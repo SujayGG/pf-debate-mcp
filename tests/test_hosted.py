@@ -116,10 +116,14 @@ def server(tiny_library, tmp_path_factory):
         s.bind(("127.0.0.1", 0))
         port = s.getsockname()[1]
     env = {**os.environ, "PF_DEBATE_HOME": str(home), "PYTHONIOENCODING": "utf-8"}
+    # Log to a file, not a pipe: nobody reads the pipe, and on Windows (4 KB pipe buffer) the server would
+    # block on its first burst of log output and every request would hang.
+    log = tmp_path_factory.mktemp("srv") / "server.log"
+    log_f = open(log, "wb")
     proc = subprocess.Popen([sys.executable, "-m", "pf_debate_mcp", "serve-http", "--port", str(port),
                              "--host", "127.0.0.1", "--public-url", f"http://127.0.0.1:{port}",
                              "--allowed-host", "debate.test"], env=env,
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                            stdout=log_f, stderr=subprocess.STDOUT)
     base = f"http://127.0.0.1:{port}"
     for _ in range(100):
         try:
@@ -129,9 +133,10 @@ def server(tiny_library, tmp_path_factory):
             time.sleep(0.2)
     else:
         proc.kill()
-        pytest.fail("hosted server did not start:\n" + proc.stdout.read().decode(errors="replace")[-2000:])
+        pytest.fail("hosted server did not start:\n" + log.read_text(errors="replace")[-2000:])
     yield base
     proc.kill()
+    log_f.close()
 
 
 def _mcp_calls(base: str, calls: list[tuple[str, dict]]):
