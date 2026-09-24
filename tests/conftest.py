@@ -38,6 +38,12 @@ class _Handler(BaseHTTPRequestHandler):
             self.end_headers()
             return
         ctype, body = page
+        if ctype == "redirect":  # body is the Location
+            self.send_response(302)
+            self.send_header("Location", body.decode())
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
         start = 0
         if rng := self.headers.get("Range"):  # "bytes=N-": enough for resume tests
             start = int(rng.split("=")[1].split("-")[0])

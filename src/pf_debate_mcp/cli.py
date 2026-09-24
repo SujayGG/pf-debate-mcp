@@ -2,6 +2,7 @@
 
 import argparse
 import getpass
+import os
 import sys
 
 
@@ -22,7 +23,23 @@ def main() -> None:
     b.add_argument("--quick", action="store_true", help="from-source: PF cards only (a few minutes)")
     b.add_argument("--rebuild", action="store_true", help="from-source: delete the existing build first")
     sub.add_parser("login", help="log in to OpenCaselist with your Tabroom account")
+    h = sub.add_parser("serve-http", help="run the free public server (stateless HTTP; see docs/hosting.md)")
+    h.add_argument("--host", default="0.0.0.0")
+    h.add_argument("--port", type=int, default=int(os.environ.get("PORT", "7860")))
+    h.add_argument("--public-url", default=os.environ.get("PUBLIC_URL", "https://debate.peshcompsci.org"),
+                   help="base URL students use; download links are built from it")
+    h.add_argument("--allowed-host", action="append", dest="allowed_hosts",
+                   help="Host header to accept (repeatable), e.g. debate.peshcompsci.org and the *.hf.space name")
     args = ap.parse_args()
+
+    if args.cmd == "serve-http":
+        from . import hosted
+
+        hosts = args.allowed_hosts or [h for h in os.environ.get("ALLOWED_HOSTS", "").split(",") if h]
+        if not hosts:
+            sys.exit("Pass --allowed-host (or ALLOWED_HOSTS) with the public host name(s).")
+        hosted.serve(args.host, args.port, args.public_url, hosts)
+        return
 
     if args.cmd == "build-library":
         from . import library

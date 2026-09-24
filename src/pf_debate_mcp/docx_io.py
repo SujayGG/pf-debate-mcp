@@ -6,6 +6,7 @@ Heading 1-4, so plain Heading styles open correctly in Verbatim and in plain Wor
 
 import html
 import io
+import zipfile
 from pathlib import Path
 
 from docx import Document
@@ -106,8 +107,18 @@ def _level(paragraph) -> str | None:
     return None
 
 
+MAX_DOCX, MAX_UNZIPPED, MAX_ENTRIES, MAX_CARDS = 10_000_000, 100_000_000, 2_000, 500
+
+
 def parse(data: bytes) -> list[dict]:
-    """Split a Verbatim-style speech doc into cards with their pocket/hat/block context."""
+    """Split a Verbatim-style speech doc into cards with their pocket/hat/block context.
+    Untrusted input: size limits are checked on the zip directory before anything is decompressed."""
+    if len(data) > MAX_DOCX:
+        raise ValueError("document is over 10 MB")
+    with zipfile.ZipFile(io.BytesIO(data)) as z:
+        entries = z.infolist()
+        if len(entries) > MAX_ENTRIES or sum(e.file_size for e in entries) > MAX_UNZIPPED:
+            raise ValueError("document expands to an unreasonable size (possible zip bomb)")
     doc = Document(io.BytesIO(data))
     ctx = {"pocket": None, "hat": None, "block": None}
     cards, cur = [], None
@@ -147,4 +158,4 @@ def parse(data: bytes) -> list[dict]:
         if c["runs"]:
             c["runs"] = normalize_runs(c["runs"])
             out.append(c)
-    return out
+    return out[:MAX_CARDS]
