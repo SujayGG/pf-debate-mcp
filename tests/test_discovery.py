@@ -142,3 +142,8 @@ def test_429_is_retried_once(monkeypatch):
 
     assert r.status_code == 200
     assert len(calls) == 2
+
+
+@pytest.fixture(autouse=True)
+def _no_real_bing(web, monkeypatch):
+    monkeypatch.setattr(discovery, "BING", f"{web}/no-bing")  # 404 locally: tests never hit the real Bing

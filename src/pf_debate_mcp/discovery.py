@@ -19,6 +19,7 @@ from .store import _ByteLRU
 OPENALEX = "https://api.openalex.org/works"
 GDELT = "https://api.gdeltproject.org/api/v2/doc/doc"
 GNEWS = "https://news.google.com/rss/search"
+BING = "https://www.bing.com/news/search"
 MAILTO = "pf-debate@users.noreply.github.com"
 TIMEOUT = 15.0  # GDELT is often slow; it runs in parallel with the others  # seconds, per source
 _HEADERS = {"User-Agent": "pf-debate-mcp (citable evidence search)"}
@@ -123,6 +124,22 @@ def _fetch_gnews(query: str, n: int) -> list[dict]:
     return out
 
 
+def _fetch_bing(query: str, n: int) -> list[dict]:
+    """Bing News RSS: unlike Google News, its links carry the real article URL (in the url= parameter)."""
+    from urllib.parse import parse_qs, urlparse
+
+    root = ET.fromstring(_get(_url(BING, {"q": query, "format": "rss"})).text)
+    out = []
+    for item in root.findall(".//item")[:n]:
+        link = (item.findtext("link") or "").strip()
+        real = parse_qs(urlparse(link).query).get("url", [link])[0]
+        out.append({"kind": "news", "title": (item.findtext("title") or "").strip(), "url": real, "authors": [],
+                    "quals": None, "date": _rfc822_date(item.findtext("pubDate") or ""),
+                    "source": urlparse(real).netloc.removeprefix("www."),
+                    "snippet": (item.findtext("description") or "")[:300]})
+    return out
+
+
 # ---- orchestration -------------------------------------------------------
 
 def _dedupe(items: list[dict]) -> list[dict]:
@@ -147,7 +164,7 @@ def find_sources(query: str, kinds: tuple[str, ...] = ("papers", "news"), limit:
 
     jobs = [("openalex", _fetch_papers)] if "papers" in kinds else []
     if "news" in kinds:
-        jobs.append(("gdelt", _fetch_gdelt))
+        jobs += [("gdelt", _fetch_gdelt), ("bing", _fetch_bing)]
 
     got, skipped = {}, []
     with cf.ThreadPoolExecutor(max_workers=max(1, len(jobs))) as ex:
@@ -163,8 +180,8 @@ def find_sources(query: str, kinds: tuple[str, ...] = ("papers", "news"), limit:
     news = []
     if "news" in kinds:
         gdelt_hits = got.get("gdelt")
-        news = gdelt_hits or []
-        if gdelt_hits is None or len(gdelt_hits) < limit // 2:
+        news = (gdelt_hits or []) + got.get("bing", [])
+        if len(news) < limit // 2:
             try:
                 news = news + _fetch_gnews(query, limit)  # GDELT thin or down: top up with Google News RSS
             except Exception as e:
