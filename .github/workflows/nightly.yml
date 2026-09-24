@@ -1,0 +1,29 @@
+name: nightly
+# Is the free server up? Opens a GitHub issue (which emails the maintainer) when it isn't.
+on:
+  schedule: [{ cron: "17 10 * * *" }]
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Health, tool list, and a real search through the public URL
+        id: check
+        run: |
+          for i in $(seq 1 8); do curl -fsS https://debate.peshcompsci.org/health && break; sleep 15; done
+          curl -fsS https://debate.peshcompsci.org/health
+          curl -fsS -X POST https://debate.peshcompsci.org/mcp \
+            -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' \
+            -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"search_cards","arguments":{"query":"nuclear war"}}}' \
+            | grep -q "lib:"
+      - name: Open an issue on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create --repo "${{ github.repository }}" --title "Nightly check failed $(date -u +%F)" \
+            --body "The public server failed its nightly check: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}. See docs/hosting.md (runbook)."

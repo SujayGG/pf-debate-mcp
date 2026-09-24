@@ -1,0 +1,18 @@
+name = "pf-debate"
+main = "worker.js"
+compatibility_date = "2026-09-01"
+
+# The public URL students paste into their AI app. Requires the peshcompsci.org zone on this Cloudflare account.
+routes = [{ pattern = "debate.peshcompsci.org", custom_domain = true }]
+
+[vars]
+BACKEND_URL = "https://sujayg5-pf-debate.hf.space"  # swap here to move the backend; students keep the same URL
+KILL_SWITCH = "off"                                  # "on" pauses tool traffic (landing page stays up)
+
+[triggers]
+crons = ["0 */12 * * *"]  # keep the free Space from sleeping (it sleeps after 48 h idle)
+
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
+fallthrough = true
