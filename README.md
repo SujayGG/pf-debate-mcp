@@ -47,7 +47,7 @@ Requires [uv](https://docs.astral.sh/uv/).
 
 **One-time setup (in a terminal):**
 ```
-uvx --from git+https://github.com/SujayGG/pf-debate-mcp pf-debate-mcp build-library           # full library (~1 h, resumable)
+uvx --from git+https://github.com/SujayGG/pf-debate-mcp pf-debate-mcp build-library           # full library (a few hours, resumable)
 uvx --from git+https://github.com/SujayGG/pf-debate-mcp pf-debate-mcp build-library --quick   # PF cards only, a few minutes
 uvx --from git+https://github.com/SujayGG/pf-debate-mcp pf-debate-mcp login                   # optional: OpenCaselist via Tabroom
 ```
