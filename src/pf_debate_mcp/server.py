@@ -183,7 +183,11 @@ def auto_cut_cards(claim: str, max_new: int = 4) -> dict:
     if pool:
         sims = semantic.embed([f"{r.get('title', '')}. {r.get('snippet', '')}" for r in pool]) @ semantic.embed([claim])[0]
         pool = [r for _, r in sorted(zip(sims, pool), key=lambda t: -t[0])]
-    candidates = pool[: max_new * 2]
+    # Split the slots: paper titles out-rank headlines on similarity, but paper landing pages are mostly
+    # paywalled, so news always gets its share. Papers use their free PDF when OpenAlex knows one.
+    news = [r for r in pool if r.get("kind") == "news"][:max_new]
+    papers = [{**r, "url": r.get("pdf_url") or r["url"]} for r in pool if r.get("kind") == "paper"][:max_new]
+    candidates = news + papers
 
     def try_cut(r):
         try:
@@ -204,7 +208,13 @@ def auto_cut_cards(claim: str, max_new: int = 4) -> dict:
     done, late = wait(futures, timeout=20)  # with discovery (<=8 s) a student waits at most ~28 s
     ex.shutdown(wait=False, cancel_futures=True)
     results = [f.result() for f in done] + [{"skipped": "(slow site)", "reason": "timed out"} for _ in late]
-    new = sorted((x for x in results if "card" in x and x["score"] >= 0.45), key=lambda x: -x["score"])[:max_new]
+    seen, new = set(), []
+    for x in sorted((x for x in results if "card" in x and x["score"] >= 0.45), key=lambda x: -x["score"]):
+        body = "".join(t for t, _, _ in x["card"]["runs"])[:300]
+        if body not in seen:  # the same article can arrive through two links
+            seen.add(body)
+            new.append(x)
+    new = new[:max_new]
     return {"library": library_cards, "new": new,
             "skipped": [x for x in results if "skipped" in x] + found["skipped"]}
 
