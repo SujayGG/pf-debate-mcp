@@ -3,1173 +3,798 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>pf&middot;debate app</title>
-<meta name="description" content="Search verified cut cards, find and cut new evidence, build a case doc, and ask a free AI — all in one page, no account needed.">
+<title>pf-debate: find and cut cards</title>
+<meta name="description" content="Type the claim you need. pf-debate searches 173k already-cut cards and cuts fresh, word-for-word verified cards from new sources. Free, no account.">
 <meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:,">
 <style>
-  :root {
-    --paper: #f0f1ea;
-    --paper-line: #d7d9cc;
-    --card: #fdfdfa;
-    --ink: #191a15;
-    --ink-soft: #52544a;
-    --ink-faint: #828474;
-    --yellow: #f2df1f;
-    --yellow-ink: #4a3f00;
-    --cyan: #12a89e;
-    --cyan-ink: #06413d;
-    --cyan-bg: #d8f3f1;
-    --red: #b3402b;
-    --red-bg: #f6ded8;
-    --amber: #a96a10;
-    --amber-bg: #f5e6cc;
-    --green: #1a7a3c;
-    --green-bg: #dcefe0;
-    --focus: #0b6b8c;
-    --radius: 3px;
-    --border: 1px solid var(--paper-line);
-    --shadow: 0 1px 0 rgba(25,26,21,.06);
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --paper: #17180f;
-      --paper-line: #35362a;
-      --card: #1e2015;
-      --ink: #eeefe3;
-      --ink-soft: #b7b9a7;
-      --ink-faint: #83857a;
-      --yellow: #e7d21b;
-      --yellow-ink: #2b2400;
-      --cyan: #2fd0c4;
-      --cyan-ink: #d9fbf7;
-      --cyan-bg: #10352f;
-      --red: #ff8b6f;
-      --red-bg: #3a1c14;
-      --amber: #f0b545;
-      --amber-bg: #3a2b0c;
-      --green: #7fe0a0;
-      --green-bg: #123b21;
-      --focus: #5fd0f0;
-    }
-  }
-  * { box-sizing: border-box; }
-  html { -webkit-text-size-adjust: 100%; }
-  body {
-    margin: 0;
-    background: var(--paper);
-    color: var(--ink);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    font-size: 16px;
-    line-height: 1.5;
-    min-width: 320px;
-    overflow-x: hidden;
-  }
-  .serif { font-family: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, "Times New Roman", serif; }
-  a { color: var(--cyan-ink); background: var(--cyan-bg); border-radius: 2px; padding: 1px 3px; }
-  a, button { font: inherit; }
-  button { cursor: pointer; }
-  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 2px; }
-  @media (prefers-reduced-motion: reduce) {
-    * { animation-duration: .001ms !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
-  }
+:root{
+  --paper:#fcfcfa; --card:#ffffff; --rule:#d6e2ef; --margin:#e6a3a8;
+  --ink:#15161c; --ink-2:#464957; --ink-3:#62667a;
+  --pen:#1d3fb8; --pen-bg:#e8edfc; --hl:#ffe94d; --hl-ink:#15140a;
+  --red:#b3232b; --red-bg:#fbe9ea; --green:#17703a; --green-bg:#e3f3e8; --amber-bg:#fff4c7;
+  --line:#dcdde3; --shadow:0 1px 0 #dcdde3, 0 6px 18px -10px rgba(21,22,28,.35);
+  --sans:system-ui,-apple-system,"Segoe UI Variable Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --serif:Charter,"Bitstream Charter","Iowan Old Style","Sitka Text",Cambria,Georgia,serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#11141c; --card:#191d28; --rule:#263047; --margin:#6a3439;
+  --ink:#eceef4; --ink-2:#b9bdcb; --ink-3:#969cb0;
+  --pen:#9db2ff; --pen-bg:#1f2a4d; --red:#ff9aa0; --red-bg:#3a1a1e; --green:#8ee0aa; --green-bg:#16331f; --amber-bg:#3a3313;
+  --line:#2c3243; --shadow:0 1px 0 #2c3243, 0 8px 20px -12px rgba(0,0,0,.8);
+}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 var(--sans);overflow-x:hidden}
+a{color:var(--pen);text-underline-offset:3px}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--pen);outline-offset:2px;border-radius:3px}
+.vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+.wrap{max-width:860px;margin:0 auto;padding:0 16px}
 
-  .wrap { max-width: 880px; margin: 0 auto; padding: 0 16px; }
+/* header */
+.top{border-bottom:1px solid var(--line);background:var(--card)}
+.top .wrap{display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap;min-height:60px}
+.mark{font-weight:850;font-size:1.15rem;letter-spacing:-.02em;color:var(--ink);text-decoration:none;padding:8px 0;margin-right:auto}
+.mark b{background:var(--hl);color:var(--hl-ink);padding:0 .1em;margin-left:-.05em;border-radius:2px}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;color:var(--ink-2)}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--ink-3);flex:none}
+.dot.online{background:var(--green)} .dot.waking{background:#d99a00} .dot.down{background:var(--red)}
+.hbtn{min-height:44px;padding:8px 12px;border:2px solid var(--ink);border-radius:6px;background:var(--card);font-weight:700;display:inline-flex;align-items:center;gap:8px}
+.hbtn:hover{background:var(--pen-bg)}
+.linkish{background:none;border:0;padding:8px 4px;min-height:44px;color:var(--pen);font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.count{min-width:1.6em;height:1.6em;padding:0 .35em;border-radius:1em;background:var(--hl);color:var(--hl-ink);font-size:.85rem;display:inline-grid;place-items:center;border:1.5px solid var(--hl-ink)}
+.privacy{margin:0;padding:6px 16px 8px;font-size:.8rem;color:var(--ink-3);max-width:860px;margin-inline:auto}
 
-  /* ---- header ---- */
-  header.site { padding: 14px 0 10px; border-bottom: var(--border); background: var(--card); }
-  .header-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-  a.back { background: none; text-decoration: none; font-weight: 700; color: var(--ink); padding: 10px 2px; min-height: 44px; display: inline-flex; align-items: center; }
-  a.back span { color: var(--cyan-ink); }
-  .status-row { display: flex; align-items: center; gap: 7px; font-size: .85rem; color: var(--ink-soft); }
-  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ink-faint); flex: none; }
-  .dot.online { background: var(--green); }
-  .dot.waking { background: var(--amber); }
-  .dot.down { background: var(--red); }
-  p.privacy { max-width: 880px; margin: 8px auto 0; padding: 0 16px; font-size: .8rem; color: var(--ink-faint); }
+/* ask box: an index card */
+main{padding:22px 0 80px}
+.ask{background:var(--card);border:1px solid var(--line);border-radius:4px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.ask::before{content:"";position:absolute;inset:0 auto 0 34px;width:2px;background:var(--margin);opacity:.7}
+.ask h1{margin:0;padding:18px 18px 12px 50px;font-size:clamp(1.55rem,6vw,2.35rem);line-height:1.1;letter-spacing:-.03em;font-weight:850;border-bottom:2px solid var(--margin)}
+.ask form{padding:0 18px 16px 50px}
+.ask textarea{display:block;width:100%;border:0;resize:none;background:transparent;font-size:1.3rem;line-height:2.2rem;min-height:4.4rem;padding:0 0 1px;
+  background-image:repeating-linear-gradient(to bottom,transparent 0 calc(2.2rem - 1px),var(--rule) calc(2.2rem - 1px) 2.2rem);background-attachment:local}
+.ask textarea::placeholder{color:var(--ink-3)}
+.ask textarea:focus-visible{outline:0}
+.ask:focus-within{box-shadow:0 0 0 3px var(--pen),var(--shadow)}
+.ask-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 0;padding:0;list-style:none}
+.chip{min-height:44px;padding:8px 12px;border:1px dashed var(--ink-3);border-radius:22px;background:transparent;color:var(--ink-2);font-size:.92rem;text-align:left}
+.chip:hover{border-style:solid;border-color:var(--ink);color:var(--ink)}
+.go{min-height:48px;padding:10px 22px;border:2px solid var(--hl-ink);border-radius:6px;background:var(--hl);color:var(--hl-ink);font-weight:800;font-size:1.05rem;box-shadow:3px 3px 0 var(--hl-ink)}
+.go:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--hl-ink)}
+.go:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--hl-ink)}
+.go:disabled{opacity:.6;cursor:progress;transform:none}
+.hint{font-size:.85rem;color:var(--ink-3)}
 
-  /* ---- tabs ---- */
-  nav.tabs-wrap { background: var(--card); border-bottom: var(--border); }
-  .tablist { display: flex; flex-wrap: wrap; gap: 2px; max-width: 880px; margin: 0 auto; padding: 0 16px; }
-  .tablist [role="tab"] {
-    background: none; border: none; border-bottom: 3px solid transparent;
-    padding: 12px 12px; min-height: 44px; color: var(--ink-soft); font-weight: 600; font-size: .92rem;
-  }
-  .tablist [role="tab"][aria-selected="true"] { color: var(--ink); border-bottom-color: var(--cyan); }
-  .tablist [role="tab"]:hover { color: var(--ink); }
+/* progress */
+.progress{margin:18px 0 0;padding:14px 16px;border-left:4px solid var(--hl);background:var(--card);border-radius:0 4px 4px 0}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.steps li{display:flex;gap:10px;align-items:center;color:var(--ink-3)}
+.steps li::before{content:"";width:14px;height:14px;border-radius:50%;border:2px solid currentColor;flex:none}
+.steps li.on{color:var(--ink);font-weight:700}
+.steps li.on::before{border-color:var(--pen);border-right-color:transparent;animation:spin 1s linear infinite}
+.steps li.done{color:var(--ink-2)}
+.steps li.done::before{background:var(--green);border-color:var(--green)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.elapsed{font-size:.82rem;color:var(--ink-3);margin:8px 0 0}
 
-  main { padding: 22px 0 60px; }
-  [role="tabpanel"] > h1 { font-size: 1.4rem; margin: 0 0 4px; }
-  .lede { color: var(--ink-soft); margin: 0 0 18px; max-width: 60ch; }
+/* sections */
+.sec{margin-top:30px}
+.sec h2{font-size:1.2rem;letter-spacing:-.01em;margin:0 0 4px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.sec h2 small{font-weight:500;font-size:.85rem;color:var(--ink-3)}
+.sub{margin:0 0 14px;color:var(--ink-2);font-size:.92rem}
+.stack{display:grid;gap:16px}
+.note{padding:12px 14px;border-radius:4px;background:var(--amber-bg);color:var(--ink);font-size:.92rem;margin:0}
+.err{padding:12px 14px;border-radius:4px;background:var(--red-bg);color:var(--red);border-left:4px solid var(--red);font-weight:600;margin:10px 0 0}
+.ok{color:var(--green);font-weight:600}
 
-  /* ---- forms ---- */
-  label { display: block; font-size: .85rem; font-weight: 600; color: var(--ink-soft); margin: 10px 0 4px; }
-  input[type="text"], input[type="search"], input[type="url"], input:not([type]), select, textarea {
-    width: 100%; font: inherit; padding: 10px; min-height: 44px; border: 1px solid var(--paper-line);
-    border-radius: var(--radius); background: var(--card); color: var(--ink);
-  }
-  textarea { min-height: 72px; resize: vertical; }
-  .req { color: var(--red); font-weight: 700; }
-  .filter-row { display: flex; gap: 10px; flex-wrap: wrap; }
-  .filter-row label { flex: 1 1 140px; margin-top: 10px; }
-  fieldset { border: var(--border); border-radius: var(--radius); margin: 14px 0; padding: 4px 12px 12px; }
-  legend { font-weight: 700; padding: 0 4px; }
+/* evidence card */
+.ev{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:16px 16px 12px;box-shadow:var(--shadow)}
+.ev-tag{margin:0 0 6px;font-size:1.08rem;line-height:1.35;font-weight:800;padding:2px 4px;margin-left:-4px;border-radius:3px}
+.ev-tag[contenteditable]{cursor:text;border-bottom:1px dashed transparent}
+.ev-tag[contenteditable]:hover{border-bottom-color:var(--ink-3)}
+.ev-tag[contenteditable]:focus{outline:2px solid var(--pen);outline-offset:1px}
+.ev-cite{margin:0 0 10px;font-size:.84rem;color:var(--ink-2);overflow-wrap:anywhere}
+.ev-cite b{color:var(--ink);font-size:1rem}
+.ev-body{font-family:var(--serif);font-size:1rem;line-height:1.7;margin:0;overflow-wrap:anywhere}
+.ev-body .u{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}
+.ev-body mark{color:var(--hl-ink);background:linear-gradient(transparent 6%,var(--hl) 6% 94%,transparent 94%);text-decoration:underline;text-underline-offset:2px;padding:0 1px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.ev-body .x{font-size:.72em;color:var(--ink-3)}
+.ev-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px;padding-top:10px;border-top:1px dashed var(--line)}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;font-weight:700;color:var(--green);background:var(--green-bg);padding:4px 10px;border-radius:14px}
+.src{font-size:.85rem;padding:10px 4px;overflow-wrap:anywhere}
+.acts{display:flex;gap:8px;margin-left:auto}
+.btn{min-height:44px;min-width:44px;padding:8px 14px;border:1.5px solid var(--ink);border-radius:6px;background:var(--card);font-weight:700;font-size:.92rem}
+.btn:hover{background:var(--pen-bg)}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--card)}
+.btn.primary{background:var(--ink);color:var(--card)}
+.btn.primary:hover{background:var(--pen);border-color:var(--pen)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.warn{list-style:none;margin:8px 0 0;padding:0;font-size:.82rem;color:var(--ink-2)}
+.warn li{padding-left:18px;position:relative}
+.warn li::before{content:"!";position:absolute;left:3px;font-weight:900;color:#b07a00}
+.small-status{font-size:.82rem;min-height:1.2em;margin:4px 0 0;color:var(--green);width:100%}
 
-  button.primary, button[type="submit"], .btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-    min-height: 44px; padding: 10px 18px; margin-top: 10px; border: none; border-radius: var(--radius);
-    background: var(--ink); color: var(--paper); font-weight: 600;
-  }
-  button.primary:hover, button[type="submit"]:hover, .btn:hover { background: var(--cyan-ink); }
-  button.secondary { background: var(--card); color: var(--ink); border: var(--border); }
-  button.secondary:hover { background: var(--paper); }
-  button:disabled { opacity: .55; cursor: not-allowed; }
-  .icon-btn { min-width: 44px; min-height: 44px; background: none; border: none; font-size: 1.2rem; color: var(--ink-soft); }
-  .link-btn { background: var(--cyan-bg); color: var(--cyan-ink); border: none; border-radius: 2px; padding: 6px 8px; min-height: 32px; font-size: .88rem; }
+/* library rows */
+.lib{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.lib>li{border-bottom:1px solid var(--line)}
+.lib-row{display:flex;gap:8px;align-items:stretch}
+.lib-open{flex:1;min-width:0;display:grid;gap:2px;text-align:left;padding:12px 4px;background:none;border:0;min-height:44px}
+.lib-open:hover .lib-tag{text-decoration:underline}
+.lib-tag{font-weight:700;line-height:1.35}
+.lib-meta{font-size:.82rem;color:var(--ink-3)}
+.lib-meta strong{color:var(--ink-2);font-weight:600}
+.lib-row .btn{align-self:center}
+.lib-body{padding:0 0 16px}
+.caret{display:inline-block;transition:transform .15s;margin-right:4px;color:var(--ink-3)}
+[aria-expanded="true"] .caret{transform:rotate(90deg)}
 
-  .status-line { min-height: 1.3em; font-size: .88rem; color: var(--ink-soft); margin: 8px 0; }
-  .status-line.err { color: var(--red); font-weight: 600; }
-  .banner-error { background: var(--red-bg); color: var(--red); border-left: 4px solid var(--red); padding: 10px 12px; border-radius: 0 2px 2px 0; font-weight: 600; margin: 10px 0; }
-  .callout { margin: 12px 0; padding: 10px 12px; border-left: 4px solid var(--amber); background: var(--amber-bg); color: var(--ink); font-size: .88rem; border-radius: 0 2px 2px 0; }
-  .callout.info { border-left-color: var(--cyan); background: var(--cyan-bg); }
+/* cut from a link */
+details.link{margin-top:34px;border:2px solid var(--ink);border-radius:6px;background:var(--card)}
+details.link>summary{list-style:none;cursor:pointer;padding:14px 16px;min-height:48px;font-weight:800;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+details.link>summary::-webkit-details-marker{display:none}
+details.link>summary::before{content:"+";font-size:1.3rem;line-height:1;width:1em;text-align:center}
+details.link[open]>summary::before{content:"\2212"}
+details.link>summary span{font-weight:500;color:var(--ink-3);font-size:.88rem}
+.linkbody{padding:0 16px 16px}
+label{display:block;font-weight:700;font-size:.9rem;margin:12px 0 4px}
+label span{font-weight:400;color:var(--ink-3)}
+.field{width:100%;min-height:44px;padding:10px 12px;border:1.5px solid var(--ink-3);border-radius:6px;background:var(--paper)}
+.field:focus-visible{outline:3px solid var(--pen);outline-offset:1px;border-color:var(--pen)}
 
-  /* ---- results ---- */
-  ul.results-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-  .result-btn {
-    display: block; width: 100%; text-align: left; background: var(--card); border: var(--border);
-    border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px 14px; color: var(--ink);
-  }
-  .result-btn:hover { border-color: var(--cyan); }
-  .result-tag { display: block; font-weight: 700; margin-bottom: 4px; }
-  .result-meta { display: block; font-size: .78rem; color: var(--ink-faint); margin-bottom: 6px; }
-  .result-snippet { display: block; font-size: .88rem; color: var(--ink-soft); }
-  li.empty, p.empty { color: var(--ink-soft); font-size: .92rem; }
-
-  /* ---- card runs ---- */
-  .runs { line-height: 1.7; }
-  .run-hl { background: var(--cyan); color: var(--cyan-ink); text-decoration: underline; padding: 0 1px; border-radius: 2px; }
-  .run-ul { text-decoration: underline; color: var(--ink); }
-  .run-unread { font-size: .82em; color: var(--ink-faint); }
-  .runs.read-only .run-unread { display: none; }
-  .toggle-row { display: flex; align-items: center; gap: 8px; font-weight: 400; font-size: .9rem; margin: 12px 0; }
-  .toggle-row input { width: 20px; height: 20px; min-height: 20px; }
-  .cite { color: var(--ink-faint); font-size: .85rem; border-top: 1px dashed var(--paper-line); padding-top: 8px; margin: 4px 0 12px; }
-
-  /* ---- dialog ---- */
-  dialog#cardDialog { border: none; border-radius: var(--radius); padding: 0; max-width: 640px; width: 92vw; background: var(--card); color: var(--ink); box-shadow: 0 8px 30px rgba(0,0,0,.3); }
-  dialog#cardDialog::backdrop { background: rgba(0,0,0,.5); }
-  .dialog-inner { padding: 20px; max-height: 85vh; overflow: auto; position: relative; }
-  #cardDialogClose { position: absolute; top: 10px; right: 10px; }
-  .dialog-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
-
-  /* ---- find ---- */
-  .find-item { background: var(--card); border: var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px 14px; margin-bottom: 10px; }
-  .find-title { font-weight: 700; margin: 0 0 4px; }
-  .badge { background: var(--amber-bg); color: var(--amber); font-size: .72rem; font-weight: 700; padding: 2px 6px; border-radius: 20px; margin-left: 6px; }
-  .find-meta { font-size: .78rem; color: var(--ink-faint); margin: 0 0 6px; }
-  .find-snippet { font-size: .88rem; color: var(--ink-soft); margin: 0 0 8px; }
-  .paragraphs { background: var(--card); border: var(--border); border-radius: var(--radius); padding: 12px 16px; max-height: 340px; overflow: auto; }
-  .paragraphs li { margin-bottom: 10px; font-size: .92rem; }
-  .passage { background: var(--card); border: var(--border); border-radius: var(--radius); padding: 14px; }
-  .mark-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
-  hr { border: none; border-top: var(--border); margin: 26px 0; }
-
-  /* ---- doc builder ---- */
-  ul#docItems { list-style: none; margin: 0 0 18px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-  li.doc-item { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; background: var(--card); border: var(--border); border-radius: var(--radius); padding: 8px 10px; }
-  .doc-type { font-size: .72rem; font-weight: 700; color: var(--ink-faint); background: var(--paper); border-radius: 2px; padding: 4px 6px; white-space: nowrap; }
-  .doc-heading, .doc-text { min-height: 40px; margin: 0; }
-  .doc-card-label { font-size: .9rem; }
-  .doc-controls { display: flex; gap: 4px; }
-  .doc-controls button { min-width: 36px; min-height: 36px; padding: 4px 8px; background: var(--paper); border: var(--border); border-radius: var(--radius); }
-  .add-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 14px; }
-  .add-row label { margin: 0 0 4px; }
-  .add-row select, .add-row input, .add-row textarea { width: auto; flex: 1 1 160px; }
-  .export-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
-
-  /* ---- chat ---- */
-  .model-select { display: flex; flex-direction: column; gap: 6px; background: var(--card); border: var(--border); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 6px; }
-  .model-select label { display: flex; align-items: center; gap: 8px; font-weight: 400; font-size: .92rem; color: var(--ink); margin: 4px 0; }
-  .model-select input { width: 20px; height: 20px; min-height: 20px; }
-  .chat-log { background: var(--card); border: var(--border); border-radius: var(--radius); padding: 12px; min-height: 160px; max-height: 420px; overflow-y: auto; margin: 10px 0; }
-  .msg { border-radius: var(--radius); padding: 8px 10px; margin-bottom: 8px; max-width: 90%; font-size: .94rem; }
-  .msg p { margin: 0 0 6px; }
-  .msg p:last-child { margin-bottom: 0; }
-  .msg-user { background: var(--paper); margin-left: auto; }
-  .msg-assistant { background: var(--cyan-bg); color: var(--cyan-ink); }
-  details.tool-step { font-size: .82rem; color: var(--ink-soft); margin: 4px 0; }
-  details.tool-step summary { cursor: pointer; padding: 4px 2px; min-height: 32px; }
-  details.tool-step pre { white-space: pre-wrap; word-break: break-word; background: var(--paper); padding: 8px; border-radius: 2px; }
-  details.tool-error summary { color: var(--red); }
-  .handoff { border-top: var(--border); margin-top: 22px; padding-top: 16px; }
-  .handoff-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-  .try-prompts { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
-
-  footer.site { border-top: var(--border); margin-top: 10px; padding: 16px 0 30px; font-size: .82rem; color: var(--ink-faint); }
+/* dialogs: tray + case */
+dialog{padding:0;border:0;color:var(--ink);background:var(--paper);max-height:100dvh}
+dialog::backdrop{background:rgba(10,12,18,.5)}
+dialog.drawer{margin:0 0 0 auto;height:100dvh;width:min(460px,100vw);max-width:100vw;border-left:2px solid var(--ink)}
+dialog.panel{width:min(720px,calc(100vw - 16px));max-height:calc(100dvh - 16px);border:2px solid var(--ink);border-radius:6px}
+.dhead{position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:10px;padding:10px 12px 10px 16px;background:var(--card);border-bottom:1px solid var(--line)}
+.dhead h2{margin:0 auto 0 0;font-size:1.15rem}
+.dbody{padding:14px 16px 24px}
+.kept{list-style:none;margin:0;padding:0;display:grid;gap:10px;counter-reset:k}
+.kept li{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:8px 10px;display:grid;grid-template-columns:auto 1fr;gap:4px 8px;align-items:center;counter-increment:k}
+.kept li::before{content:counter(k);font-weight:800;color:var(--ink-3);font-size:.85rem;width:1.4em;text-align:right}
+.kept input{min-width:0}
+.kept .kctl{grid-column:2;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.kept .kid{font-size:.75rem;color:var(--ink-3);margin-right:auto}
+.ib{min-width:44px;min-height:44px;border:1px solid var(--line);border-radius:6px;background:var(--paper);font-weight:700}
+.ib:hover{border-color:var(--ink)}
+.ib:disabled{opacity:.4}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.seg{display:flex;gap:0;border:1.5px solid var(--ink);border-radius:6px;overflow:hidden;width:max-content}
+.seg label{margin:0;font-size:1rem}
+.seg input{position:absolute;opacity:0}
+.seg span{display:block;padding:10px 22px;min-height:44px;cursor:pointer;color:var(--ink)}
+.seg input:checked+span{background:var(--ink);color:var(--card)}
+.seg input:focus-visible+span{outline:3px solid var(--pen);outline-offset:-3px}
+.log{list-style:none;margin:12px 0 0;padding:0;font-size:.85rem;color:var(--ink-2);display:grid;gap:4px}
+.answer{margin-top:14px;background:var(--card);border:1px solid var(--line);border-radius:4px;padding:14px 16px;overflow-wrap:anywhere}
+.answer h3,.answer h4{margin:14px 0 6px}
+.answer p{margin:0 0 10px}
+.answer ul,.answer ol{margin:0 0 10px;padding-left:1.3em}
+.answer code{font-size:.9em;background:var(--pen-bg);padding:0 3px;border-radius:3px}
+footer{border-top:1px solid var(--line);padding:18px 0 34px;font-size:.84rem;color:var(--ink-3)}
+footer p{margin:0 0 6px}
+@media (max-width:480px){
+  .ask::before{left:18px}
+  .ask h1{padding-left:30px;padding-right:12px}
+  .ask form{padding-left:30px;padding-right:12px}
+  .ask textarea{font-size:1.12rem}
+  .acts{margin-left:0;width:100%}
+  .acts .btn{flex:1}
+  .hide-sm{display:none}
+}
 </style>
 </head>
 <body>
 
-<header class="site">
-  <div class="wrap header-row">
-    <a class="back" href="/">&larr; pf<span>&middot;</span>debate</a>
-    <span class="status-row">
-      <span class="dot" id="statusDot" aria-hidden="true"></span>
-      <span id="statusText" role="status" aria-live="polite">Checking server status&hellip;</span>
-    </span>
+<header class="top">
+  <div class="wrap">
+    <a class="mark" href="/">pf-<b>debate</b></a>
+    <span class="status"><span class="dot" id="dot" aria-hidden="true"></span><span id="statusText" role="status">Checking server…</span></span>
+    <button type="button" class="linkish" id="caseLink">Build a case</button>
+    <button type="button" class="hbtn" id="trayBtn" aria-haspopup="dialog">My cards <span class="count" id="count">0</span></button>
   </div>
-  <p class="privacy">Searches and cuts run on our free server and aren't stored. The free shared AI sends your chat to Cerebras/Groq; Puter uses your own account.</p>
+  <p class="privacy">Searches and cuts run on our free server and aren't stored. "Build a case" sends your request and kept cards to a free AI provider.</p>
 </header>
 
-<nav class="tabs-wrap" aria-label="App sections">
-  <div class="tablist" role="tablist">
-    <button role="tab" id="tab-search" aria-controls="panel-search" aria-selected="true" tabindex="0">Search cards</button>
-    <button role="tab" id="tab-find" aria-controls="panel-find" aria-selected="false" tabindex="-1">Find evidence</button>
-    <button role="tab" id="tab-doc" aria-controls="panel-doc" aria-selected="false" tabindex="-1">Doc builder</button>
-    <button role="tab" id="tab-ask" aria-controls="panel-ask" aria-selected="false" tabindex="-1">Ask the AI</button>
-  </div>
-</nav>
-
 <main class="wrap">
-
-  <!-- ============ SEARCH ============ -->
-  <section id="panel-search" role="tabpanel" aria-labelledby="tab-search" tabindex="0">
-    <h1 class="serif">Search cards</h1>
-    <p class="lede">Plain English is fine &mdash; describe the argument you need.</p>
-    <form id="searchForm">
-      <label for="searchQ">Describe what you need</label>
-      <input id="searchQ" type="search" placeholder="e.g. cards saying data centers raise electricity bills" autocomplete="off">
-      <div class="filter-row">
-        <label for="searchSort">Sort
-          <select id="searchSort"><option value="relevance">Relevance</option><option value="popular">Popular</option></select>
-        </label>
-        <label for="searchSide">Side
-          <select id="searchSide"><option value="">Any</option><option value="A">Aff</option><option value="N">Neg</option></select>
-        </label>
-        <label for="searchEvent">Event
-          <select id="searchEvent"><option value="">Any</option><option value="pf">PF</option><option value="ld">LD</option><option value="cx">CX</option><option value="openev">Open Ev</option></select>
-        </label>
+  <section class="ask" aria-labelledby="askTitle">
+    <h1 id="askTitle">What card do you need?</h1>
+    <form id="askForm">
+      <label for="claim" class="vh">Describe the claim your card should prove</label>
+      <textarea id="claim" rows="2" maxlength="300" placeholder="Type the claim, e.g. tariffs hurt farmers" autocomplete="off"></textarea>
+      <div class="ask-row">
+        <button type="submit" class="go" id="goBtn">Find &amp; cut cards</button>
+        <span class="hint hide-sm">Takes 10 to 25 seconds. Library cards show up first.</span>
       </div>
-      <button type="submit" class="primary">Search</button>
+      <ul class="chips" aria-label="Example claims">
+        <li><button type="button" class="chip">data centers raise electricity bills</button></li>
+        <li><button type="button" class="chip">nuclear war causes extinction</button></li>
+        <li><button type="button" class="chip">sanctions fail to change regime behavior</button></li>
+      </ul>
     </form>
-    <p id="searchStatus" class="status-line" role="status" aria-live="polite"></p>
-    <ul id="searchResults" class="results-list">
-      <li class="empty">Try: <button type="button" class="link-btn" data-ex="cards saying data centers raise electricity bills">data centers raise electricity bills</button> <button type="button" class="link-btn" data-ex="nuclear war impact cards">nuclear war impact cards</button></li>
-    </ul>
   </section>
 
-  <!-- ============ FIND ============ -->
-  <section id="panel-find" role="tabpanel" aria-labelledby="tab-find" tabindex="0" hidden>
-    <h1 class="serif">Find new evidence</h1>
-    <p class="lede">Search live papers and news, then cut a verbatim card from whatever you open.</p>
-    <form id="findForm">
-      <label for="findQ">Search papers &amp; news</label>
-      <input id="findQ" type="search" placeholder="e.g. data center electricity demand study" autocomplete="off">
-      <button type="submit" class="primary">Find</button>
-    </form>
-    <p id="findStatus" class="status-line" role="status" aria-live="polite"></p>
-    <div id="findResults"></div>
+  <div id="progress" class="progress" hidden>
+    <ol class="steps" id="steps">
+      <li>Searching 173k cards</li>
+      <li>Fetching new sources</li>
+      <li>Cutting &amp; verifying word-for-word</li>
+    </ol>
+    <p class="elapsed" id="elapsed" aria-hidden="true"></p>
+  </div>
+  <p class="vh" id="live" aria-live="polite"></p>
 
-    <hr>
-
-    <form id="fetchForm">
-      <label for="fetchUrl">Or paste a URL to open &amp; cut</label>
-      <input id="fetchUrl" type="url" placeholder="https://example.com/article">
-      <button type="submit" class="primary">Open &amp; cut</button>
-    </form>
-    <p id="fetchStatus" class="status-line" role="status" aria-live="polite"></p>
-
-    <div id="cutWorkspace" hidden>
-      <h2>Cut a card</h2>
-      <ol id="fetchParagraphs" class="paragraphs"></ol>
-
-      <label for="claimInput">Your claim (what should this card say?)</label>
-      <textarea id="claimInput" placeholder="e.g. data centers raise electricity bills for everyone nearby"></textarea>
-      <button type="button" id="suggestBtn" class="secondary">Suggest cut</button>
-      <p id="suggestStatus" class="status-line" role="status" aria-live="polite"></p>
-
-      <div id="suggestWorkspace" hidden>
-        <h3>Suggested passage</h3>
-        <p class="lede">Select text below, then mark it.</p>
-        <div id="passageEl" class="passage runs" tabindex="0"></div>
-        <div class="mark-actions">
-          <button type="button" id="markHighlight" class="secondary">Highlight</button>
-          <button type="button" id="markUnderline" class="secondary">Underline</button>
-          <button type="button" id="markClear" class="secondary">Clear</button>
-        </div>
-
-        <fieldset>
-          <legend>Cite</legend>
-          <label for="citeTag">Tag</label><input id="citeTag">
-          <label for="citeAuthor">Author</label><input id="citeAuthor">
-          <label for="citeDate">Date</label><input id="citeDate">
-          <label for="citeTitle">Title</label><input id="citeTitle">
-          <label for="citePublisher">Publisher</label><input id="citePublisher">
-          <label for="citeUrl">URL</label><input id="citeUrl" type="url">
-          <label for="citeQuals">Author qualifications <span class="req">required</span></label>
-          <input id="citeQuals" required>
-        </fieldset>
-        <button type="button" id="cutBtn" class="primary">Cut card</button>
-        <p id="cutStatus" class="status-line" role="status" aria-live="polite"></p>
-        <div id="cutResult" hidden></div>
-      </div>
-    </div>
+  <section class="sec" id="freshSec" hidden aria-labelledby="freshH">
+    <h2 id="freshH">Fresh cuts from new sources <small id="freshCount"></small></h2>
+    <p class="sub">Cut just now and checked word-for-word against the page. Click a tag to rewrite it.</p>
+    <div id="fresh" class="stack" aria-live="polite"></div>
   </section>
 
-  <!-- ============ DOC ============ -->
-  <section id="panel-doc" role="tabpanel" aria-labelledby="tab-doc" tabindex="0" hidden>
-    <h1 class="serif">Doc builder</h1>
-    <p class="callout">Hosted card ids (c_xxxxxxxxxxxx) expire when the server restarts &mdash; export soon after cutting.</p>
-    <label for="docTitle">Doc title</label>
-    <input id="docTitle" value="Untitled doc">
-
-    <ul id="docItems"></ul>
-
-    <form id="addHeadingForm" class="add-row">
-      <div>
-        <label for="headingType">Add heading</label>
-        <select id="headingType">
-          <option value="pocket">Pocket</option>
-          <option value="hat">Hat</option>
-          <option value="block">Block</option>
-          <option value="tag">Tag</option>
-        </select>
-      </div>
-      <div style="flex:2 1 200px">
-        <label for="headingText">Heading text</label>
-        <input id="headingText" placeholder="heading text">
-      </div>
-      <button type="submit" class="secondary">Add</button>
-    </form>
-    <form id="addTextForm" class="add-row">
-      <div style="flex:1 1 100%">
-        <label for="freeText">Add free text</label>
-        <textarea id="freeText" rows="2" placeholder="analysis, instructions, weighing&hellip;"></textarea>
-      </div>
-      <button type="submit" class="secondary">Add</button>
-    </form>
-
-    <div class="export-row">
-      <button type="button" id="exportDocx" class="primary">Word (Verbatim)</button>
-      <button type="button" id="exportGdocs" class="primary">Google Docs</button>
-    </div>
-    <p id="exportStatus" class="status-line" role="status" aria-live="polite"></p>
+  <section class="sec" id="libSec" hidden aria-labelledby="libH">
+    <h2 id="libH">Already-cut cards <small>from 173k cards in debaters' files</small></h2>
+    <p class="sub">Open one to read the whole card.</p>
+    <ul id="lib" class="lib"></ul>
+    <div id="libMsg"></div>
   </section>
 
-  <!-- ============ ASK ============ -->
-  <section id="panel-ask" role="tabpanel" aria-labelledby="tab-ask" tabindex="0" hidden>
-    <h1 class="serif">Ask the AI</h1>
-    <div class="model-select" role="radiogroup" aria-label="AI model source">
-      <label><input type="radio" name="modelSrc" value="free" checked> Free shared AI (default)</label>
-      <label><input type="radio" name="modelSrc" value="puter"> Sign in with Puter (your own free allowance)</label>
-    </div>
-    <p id="modelStatus" class="status-line" role="status" aria-live="polite"></p>
-
-    <div id="chatLog" class="chat-log" aria-live="polite" aria-label="Conversation"></div>
-
-    <form id="chatForm">
-      <label for="chatInput">Message</label>
-      <textarea id="chatInput" rows="3" placeholder="e.g. Cut me a card that data centers raise electricity bills"></textarea>
-      <button type="submit" class="primary">Send</button>
+  <details class="link" id="linkBox">
+    <summary>Cut from a link <span>Have an article? Paste it here.</span></summary>
+    <form class="linkbody" id="linkForm" novalidate>
+      <label for="lUrl">Article URL</label>
+      <input id="lUrl" class="field" type="url" inputmode="url" placeholder="https://…" autocomplete="off" required>
+      <label for="lClaim">What should the card prove?</label>
+      <input id="lClaim" class="field" type="text" placeholder="e.g. data centers raise electricity bills" required>
+      <label for="lQuals">Author qualifications <span>(optional, e.g. "Professor of Economics at MIT")</span></label>
+      <input id="lQuals" class="field" type="text">
+      <div class="row"><button type="submit" class="btn primary" id="lBtn">Cut it</button></div>
+      <p id="lStatus" class="small-status" role="status" aria-live="polite"></p>
+      <div id="lErr" role="alert"></div>
+      <div id="lOut" class="stack" style="margin-top:12px"></div>
     </form>
-    <p id="chatStatus" class="status-line" role="status" aria-live="polite"></p>
-    <ul class="try-prompts">
-      <li><button type="button" class="link-btn" data-ex="Make me a neg case on this month's PF topic centered around a nuclear impact">Make a neg case around a nuclear impact</button></li>
-      <li><button type="button" class="link-btn" data-ex="They dropped our link turn. Write my summary.">They dropped our link turn &mdash; write my summary</button></li>
-    </ul>
-
-    <div class="handoff">
-      <h2>Hand off to ChatGPT / Gemini</h2>
-      <p class="lede">Builds a prompt from the system instructions, your doc's cards, and your request below, then opens it elsewhere.</p>
-      <label for="handoffPrompt">What do you want help with?</label>
-      <textarea id="handoffPrompt" rows="2" placeholder="e.g. Write my final focus using these cards"></textarea>
-      <div class="handoff-actions">
-        <button type="button" id="handoffChatGPT" class="secondary">Hand off to ChatGPT</button>
-        <button type="button" id="handoffGemini" class="secondary">Hand off to Gemini</button>
-      </div>
-      <p id="handoffStatus" class="status-line" role="status" aria-live="polite"></p>
-    </div>
-  </section>
-
+  </details>
 </main>
 
-<footer class="site">
-  <div class="wrap"><p>pf&middot;debate &mdash; free and open source. <a href="/">Back to the connector setup page</a>.</p></div>
+<footer>
+  <div class="wrap">
+    <p>pf-debate is free and open source (MIT). Library cards come from the OpenCaselist dataset (MIT).</p>
+    <p><a href="/">About and AI connector setup</a></p>
+  </div>
 </footer>
 
-<dialog id="cardDialog" aria-labelledby="cardDialogTitle">
-  <div class="dialog-inner">
-    <button type="button" id="cardDialogClose" class="icon-btn" aria-label="Close card">&times;</button>
-    <h2 id="cardDialogTitle" class="serif">&nbsp;</h2>
-    <p id="cardDialogCite" class="cite"></p>
-    <label class="toggle-row"><input type="checkbox" id="readOnlyToggle"> Show only read text</label>
-    <div id="cardRuns" class="runs"></div>
-    <div class="dialog-actions">
-      <button type="button" id="cardAddDoc" class="secondary">Add to doc</button>
-      <button type="button" id="cardCopy" class="secondary">Copy card</button>
+<dialog class="drawer" id="tray" aria-labelledby="trayH">
+  <div class="dhead"><h2 id="trayH">My cards</h2><button type="button" class="ib" data-close aria-label="Close My cards">&times;</button></div>
+  <div class="dbody">
+    <p class="note" id="expNote" hidden>Cards from new sources expire when the server restarts: export soon.</p>
+    <ol class="kept" id="kept"></ol>
+    <p id="keptEmpty" class="sub">Nothing kept yet. Press <strong>Keep</strong> on any card to collect it here.</p>
+    <div id="keptTools">
+      <label for="docTitle">Doc title</label>
+      <input id="docTitle" class="field" value="My cards">
+      <div class="row">
+        <button type="button" class="btn primary" data-export="docx">Export Word (.docx)</button>
+        <button type="button" class="btn" data-export="gdocs">Export for Google Docs</button>
+      </div>
+      <p class="sub" style="margin-top:6px;font-size:.82rem">Google Docs: open the downloaded file, select all, copy, and paste into a Doc.</p>
+      <p id="expStatus" class="small-status" role="status" aria-live="polite"></p>
+      <div id="expErr" role="alert"></div>
     </div>
-    <p id="cardActionStatus" class="status-line" role="status" aria-live="polite"></p>
+    <div class="row"><button type="button" class="btn" id="trayCase">Build a case with these cards</button></div>
   </div>
+</dialog>
+
+<dialog class="panel" id="caseDlg" aria-labelledby="caseH">
+  <div class="dhead"><h2 id="caseH">Build a case</h2><button type="button" class="ib" data-close aria-label="Close Build a case">&times;</button></div>
+  <form class="dbody" id="caseForm">
+    <fieldset style="border:0;padding:0;margin:0"><legend style="font-weight:700;font-size:.9rem;margin-bottom:4px">Side</legend>
+      <div class="seg"><label><input type="radio" name="side" value="Pro" checked><span>Pro</span></label><label><input type="radio" name="side" value="Con"><span>Con</span></label></div>
+    </fieldset>
+    <label for="cRes">Resolution</label>
+    <input id="cRes" class="field" placeholder="Resolved: The United States should…" required>
+    <label for="cFocus">Focus <span>(optional)</span></label>
+    <input id="cFocus" class="field" placeholder="e.g. nuclear impact">
+    <p class="sub" id="caseCards" style="margin-top:10px"></p>
+    <div class="row"><button type="submit" class="btn primary" id="caseBtn">Build my case</button></div>
+    <p id="caseStatus" class="small-status" role="status" aria-live="polite" style="color:var(--ink-2)"></p>
+    <ul class="log" id="caseLog"></ul>
+    <div id="caseErr" role="alert"></div>
+    <div id="handoff" hidden>
+      <p class="sub" style="margin-top:12px">Take your cards and request to another AI instead. The prompt includes pf-debate's debate instructions.</p>
+      <div class="row"><button type="button" class="btn primary" id="hoGpt">Open in ChatGPT</button><button type="button" class="btn" id="hoGem">Copy &amp; open Gemini</button></div>
+      <p id="hoStatus" class="small-status" role="status" aria-live="polite"></p>
+    </div>
+    <div id="caseOut"></div>
+  </form>
 </dialog>
 
 <script>
 (function () {
-  "use strict";
+"use strict";
+var API_BASE = ""; // same-origin; override only for local testing
 
-  /* ---------- small helpers ---------- */
-  function $(id) { return document.getElementById(id); }
-  function escapeHtml(s) {
-    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
-    });
+function $(id) { return document.getElementById(id); }
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+}
+function say(msg) { $("live").textContent = msg; }
+
+/* Every non-OK response carries {error}; the Worker's own 503/404 may be plain text. */
+async function api(path, body, raw) {
+  var opts = body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
+  var res;
+  try { res = await fetch(API_BASE + path, opts); }
+  catch (e) { var ne = new Error("Couldn't reach the server. Check your connection and try again."); ne.status = 0; throw ne; }
+  if (!res.ok) {
+    var text = "", data = {};
+    try { text = await res.text(); data = JSON.parse(text); } catch (e) { /* plain text body */ }
+    var msg = (data && data.error) || text.trim().slice(0, 300);
+    if (!msg || /^not found$/i.test(msg)) msg = {
+      400: "The server couldn't use that request.", 404: "Not found (it may have expired).",
+      422: "The cut didn't match the source word-for-word.", 429: "Too many requests. Wait a minute and try again.",
+      503: "The free server is waking up (about 1 minute). Try again shortly."
+    }[res.status] || ("Request failed (" + res.status + ").");
+    var err = new Error(msg); err.status = res.status; err.exhausted = !!(data && data.exhausted);
+    throw err;
   }
-  function prefersReducedMotion() {
-    return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return raw ? res : res.json();
+}
+
+/* ---------- cards ---------- */
+var cache = {};   // id -> card json
+var hint = {};    // id -> tag from a search row (before the full card loads)
+var libN = 0;
+var KEY = "pf-kept";
+var kept = [];
+try { kept = JSON.parse(localStorage.getItem(KEY) || "[]"); if (!Array.isArray(kept)) kept = []; } catch (e) { kept = []; }
+function saveKept() { try { localStorage.setItem(KEY, JSON.stringify(kept)); } catch (e) { /* private mode: session only */ } }
+function keptIdx(id) { for (var i = 0; i < kept.length; i++) if (kept[i].id === id) return i; return -1; }
+
+async function getCard(id) {
+  if (!cache[id]) cache[id] = await api("/api/card/" + encodeURIComponent(id) + "?view=full");
+  return cache[id];
+}
+function tagOf(id) { var i = keptIdx(id); return i >= 0 ? kept[i].tag : (cache[id] && cache[id].tag) || ""; }
+
+function runsHtml(runs) {
+  return (runs || []).map(function (r) {
+    var t = esc(r[0]);
+    return r[2] ? "<mark>" + t + "</mark>" : r[1] ? '<span class="u">' + t + "</span>" : '<span class="x">' + t + "</span>";
+  }).join("");
+}
+
+function cardHtml(card, extra) {
+  extra = extra || {};
+  var k = keptIdx(card.id) >= 0;
+  var warns = (extra.warnings || []).map(function (w) { return "<li>" + esc(w) + "</li>"; }).join("");
+  return '<article class="ev" data-card="' + esc(card.id) + '">'
+    + '<h3 class="ev-tag" contenteditable="true" role="textbox" aria-label="Card tag, editable" spellcheck="true" data-tag="' + esc(card.id) + '">' + esc(tagOf(card.id) || card.tag) + "</h3>"
+    + '<p class="ev-cite"><b>' + esc(card.cite_short) + "</b> " + esc(card.cite_rest || "") + "</p>"
+    + '<p class="ev-body">' + runsHtml(card.runs) + "</p>"
+    + (warns ? '<ul class="warn" aria-label="Notes">' + warns + "</ul>" : "")
+    + '<div class="ev-foot">'
+    + (extra.fresh ? '<span class="badge">&#10003; Verified word-for-word</span>' : "")
+    + (extra.url ? '<a class="src" href="' + esc(extra.url) + '" target="_blank" rel="noopener">Source</a>' : "")
+    + '<span class="acts"><button type="button" class="btn" data-keep="' + esc(card.id) + '" aria-pressed="' + k + '">' + (k ? "Kept" : "Keep") + "</button>"
+    + '<button type="button" class="btn" data-copy="' + esc(card.id) + '">Copy</button></span>'
+    + '<p class="small-status" role="status"></p></div></article>';
+}
+
+function syncKeepButtons() {
+  document.querySelectorAll("[data-keep]").forEach(function (b) {
+    var k = keptIdx(b.getAttribute("data-keep")) >= 0;
+    b.setAttribute("aria-pressed", String(k)); b.textContent = k ? "Kept" : "Keep";
+  });
+  $("count").textContent = kept.length;
+  $("trayBtn").setAttribute("aria-label", "My cards, " + kept.length + " kept");
+}
+
+function toggleKeep(id) {
+  var i = keptIdx(id);
+  if (i >= 0) { kept.splice(i, 1); say("Removed from My cards."); }
+  else {
+    var el = document.querySelector('[data-tag="' + CSS.escape(id) + '"]');
+    var tag = (el && el.textContent.trim()) || (cache[id] && cache[id].tag) || hint[id] || id;
+    var item = { id: id, tag: tag };
+    if (cache[id] && cache[id].tag !== tag) item.orig = cache[id].tag;
+    kept.push(item); say("Kept. " + kept.length + " in My cards.");
   }
-  function errMsg(e) {
-    if (e && e.waking) return "The server is waking up (free hosting sleeps when idle) — try again in about a minute.";
-    if (e instanceof TypeError || (e && /fetch/i.test(e.message || ""))) return "Network error — check your connection and try again.";
-    return (e && e.message) || "Something went wrong.";
-  }
-  async function copyText(text) {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      try { await navigator.clipboard.writeText(text); return; } catch (e) { /* fall through */ }
-    }
+  saveKept(); syncKeepButtons(); renderTray();
+}
+
+function copyPlain(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text).catch(fallback);
+  return fallback();
+  function fallback() {
     var ta = document.createElement("textarea");
-    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    ta.value = text; ta.setAttribute("readonly", ""); ta.style.cssText = "position:fixed;opacity:0;top:0";
     document.body.appendChild(ta); ta.select();
-    try { document.execCommand("copy"); } finally { ta.remove(); }
+    var ok = false; try { ok = document.execCommand("copy"); } finally { ta.remove(); }
+    if (!ok) throw new Error("Your browser blocked copying.");
   }
+}
 
-  /* fetch wrapper: throws Error with .status/.body/.waking set; caller reads err.message */
-  async function api(path, opts) {
-    var res;
-    try {
-      res = await fetch(path, opts || {});
-    } catch (e) {
-      throw e; // network failure — let errMsg() classify it
-    }
-    if (res.status === 503) {
-      var w = new Error("waking"); w.waking = true; w.status = 503; throw w;
-    }
-    if (!res.ok) {
-      var body = {};
-      try { body = await res.json(); } catch (e) { /* no body */ }
-      var err = new Error(body.error || ("Request failed (" + res.status + ")"));
-      err.status = res.status; err.body = body;
-      throw err;
-    }
-    return res;
-  }
-
-  /* ---------- runs rendering (shared: card view, suggest passage, cut result) ---------- */
-  function renderRunsHtml(runs) {
-    return (runs || []).map(function (r) {
-      var text = r[0], underlined = r[1], highlighted = r[2];
-      var cls = highlighted ? "run run-hl" : (underlined ? "run run-ul" : "run run-unread");
-      return '<span class="' + cls + '">' + escapeHtml(text) + "</span>";
+async function copyCard(id, statusEl) {
+  try {
+    var c = await getCard(id), tag = tagOf(id) || c.tag;
+    var el = document.querySelector('[data-tag="' + CSS.escape(id) + '"]');
+    if (el && el.textContent.trim()) tag = el.textContent.trim();
+    var cite = c.cite_short + (c.cite_rest ? " " + c.cite_rest : "");
+    var plain = tag + "\n" + cite + "\n\n" + c.runs.map(function (r) { return r[0]; }).join("");
+    var body = c.runs.map(function (r) {
+      var t = esc(r[0]);
+      if (r[2]) return '<span style="background:#ffff00;text-decoration:underline;font-weight:bold">' + t + "</span>";
+      if (r[1]) return "<u>" + t + "</u>";
+      return '<span style="font-size:8pt">' + t + "</span>";
     }).join("");
-  }
+    var html = '<div style="font-family:Calibri,Arial,sans-serif;font-size:11pt">'
+      + '<p style="font-size:13pt;font-weight:bold;margin:0">' + esc(tag) + "</p>"
+      + '<p style="margin:0"><b style="font-size:13pt">' + esc(c.cite_short) + "</b> " + esc(c.cite_rest || "") + "</p>"
+      + '<p style="margin:0">' + body + "</p></div>";
+    if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
+      try {
+        await navigator.clipboard.write([new ClipboardItem({
+          "text/html": new Blob([html], { type: "text/html" }),
+          "text/plain": new Blob([plain], { type: "text/plain" })
+        })]);
+      } catch (e) { await copyPlain(plain); }
+    } else await copyPlain(plain);
+    statusEl.textContent = "Copied. Paste into your doc.";
+  } catch (e) { statusEl.textContent = "Couldn't copy: " + e.message; }
+}
 
-  /* ---------- accessible tabs ---------- */
-  function wireTabs() {
-    var tablist = document.querySelector('[role="tablist"]');
-    var tabs = Array.prototype.slice.call(tablist.querySelectorAll('[role="tab"]'));
-    function selectTab(tab) {
-      tabs.forEach(function (t) {
-        var selected = t === tab;
-        t.setAttribute("aria-selected", selected ? "true" : "false");
-        t.tabIndex = selected ? 0 : -1;
-        var panel = $(t.getAttribute("aria-controls"));
-        if (panel) panel.hidden = !selected;
-      });
-      tab.focus();
-    }
-    tabs.forEach(function (tab, i) {
-      tab.addEventListener("click", function () { selectTab(tab); });
-      tab.addEventListener("keydown", function (e) {
-        var ni = null;
-        if (e.key === "ArrowRight") ni = (i + 1) % tabs.length;
-        else if (e.key === "ArrowLeft") ni = (i - 1 + tabs.length) % tabs.length;
-        else if (e.key === "Home") ni = 0;
-        else if (e.key === "End") ni = tabs.length - 1;
-        if (ni !== null) { e.preventDefault(); selectTab(tabs[ni]); }
-      });
+/* tag edits (inline) */
+document.addEventListener("keydown", function (e) {
+  if (e.target.matches && e.target.matches("[data-tag]") && e.key === "Enter") { e.preventDefault(); e.target.blur(); }
+});
+document.addEventListener("focusout", function (e) {
+  var el = e.target;
+  if (!el.matches || !el.matches("[data-tag]")) return;
+  var id = el.getAttribute("data-tag"), t = el.textContent.replace(/\s+/g, " ").trim();
+  if (!t) { el.textContent = tagOf(id) || (cache[id] && cache[id].tag) || ""; return; }
+  var i = keptIdx(id);
+  if (i >= 0 && kept[i].tag !== t) { setKeptTag(i, t); renderTray(); }
+});
+function setKeptTag(i, t) {
+  var k = kept[i], orig = k.orig || (cache[k.id] && cache[k.id].tag) || k.tag;
+  k.tag = t;
+  if (t !== orig) k.orig = orig; else delete k.orig;
+  saveKept();
+}
+
+document.addEventListener("click", function (e) {
+  var b = e.target.closest("button");
+  if (!b) return;
+  if (b.hasAttribute("data-keep")) toggleKeep(b.getAttribute("data-keep"));
+  else if (b.hasAttribute("data-copy")) copyCard(b.getAttribute("data-copy"), b.closest(".ev-foot").querySelector(".small-status"));
+  else if (b.hasAttribute("data-lib")) toggleLib(b);
+  else if (b.hasAttribute("data-close")) b.closest("dialog").close();
+});
+document.querySelectorAll("dialog").forEach(function (d) {
+  d.addEventListener("click", function (e) {
+    if (e.target !== d) return;
+    var r = d.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) d.close();
+  });
+});
+
+/* ---------- main search ---------- */
+var run = 0, timers = [];
+var claimEl = $("claim");
+document.querySelectorAll(".chip").forEach(function (c) {
+  c.addEventListener("click", function () { claimEl.value = c.textContent; go(); });
+});
+claimEl.addEventListener("keydown", function (e) {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); go(); }
+});
+$("askForm").addEventListener("submit", function (e) { e.preventDefault(); go(); });
+
+function setStep(n) {
+  var lis = $("steps").children;
+  for (var i = 0; i < lis.length; i++) lis[i].className = i < n ? "done" : i === n ? "on" : "";
+  if (lis[n]) say(lis[n].textContent + "…");
+}
+function stopTimers() { timers.forEach(clearTimeout); timers = []; }
+
+async function go() {
+  var claim = claimEl.value.replace(/\s+/g, " ").trim();
+  if (!claim) { claimEl.focus(); say("Type the claim you need first."); return; }
+  var my = ++run, t0 = Date.now();
+  stopTimers();
+  $("lClaim").value = $("lClaim").value || claim;
+  $("goBtn").disabled = true;
+  $("progress").hidden = false; setStep(0);
+  $("freshSec").hidden = false; $("fresh").innerHTML = ""; $("freshCount").textContent = "";
+  $("libSec").hidden = false; $("lib").innerHTML = ""; $("libMsg").innerHTML = '<p class="sub">Searching…</p>';
+  timers.push(setTimeout(function () { if (my === run) setStep(1); }, 2500));
+  timers.push(setTimeout(function () { if (my === run) setStep(2); }, 8000));
+  (function tick() {
+    if (my !== run || $("progress").hidden) return;
+    $("elapsed").textContent = Math.round((Date.now() - t0) / 1000) + " s";
+    timers.push(setTimeout(tick, 1000));
+  })();
+
+  var libIds = {};
+  var searchP = api("/api/search?" + new URLSearchParams({ q: claim, limit: "8" }))
+    .then(function (d) { if (my === run) addLib(d.results || [], libIds); })
+    .catch(function (e) { if (my === run && !$("lib").children.length) $("libMsg").innerHTML = '<p class="err">' + esc(e.message) + "</p>"; });
+
+  var fresh = $("fresh");
+  try {
+    var d = await api("/api/autocut", { claim: claim, max_new: 4 });
+    if (my !== run) return;
+    await searchP;
+    addLib(d.library || [], libIds);
+    var n = (d.new || []).length;
+    $("freshCount").textContent = n ? n + " verified" : "";
+    if (!n) fresh.innerHTML = emptyFresh();
+    else fresh.innerHTML = d.new.map(function (x) {
+      cache[x.card.id] = x.card;
+      return cardHtml(x.card, { fresh: true, url: x.url, warnings: x.warnings });
+    }).join("");
+    say("Done. " + n + " fresh cut" + (n === 1 ? "" : "s") + " and " + $("lib").children.length + " library cards.");
+  } catch (e) {
+    if (my !== run) return;
+    await searchP;
+    fresh.innerHTML = '<p class="err">Auto-cut failed: ' + esc(e.message) + "</p>" + emptyFresh();
+    say("Auto-cut failed: " + e.message);
+  } finally {
+    if (my === run) { stopTimers(); $("progress").hidden = true; $("goBtn").disabled = false; }
+    if (my === run && !$("lib").children.length && !$("libMsg").querySelector(".err")) $("libMsg").innerHTML = '<p class="sub">No library cards matched. Try other words.</p>';
+  }
+}
+
+function emptyFresh() {
+  return '<p class="note">Most sites block bots or are paywalled. Paste an article URL to cut it yourself. '
+    + '<button type="button" class="linkish" id="toLink">Cut from a link</button></p>';
+}
+document.addEventListener("click", function (e) {
+  if (e.target.id !== "toLink") return;
+  $("linkBox").open = true; $("lUrl").focus();
+});
+
+function addLib(results, seen) {
+  var ul = $("lib"), html = "";
+  results.forEach(function (r) {
+    if (seen[r.id]) return; seen[r.id] = 1;
+    var i = ++libN; hint[r.id] = r.tag;
+    var meta = [r.cite, r.year, r.event ? String(r.event).toUpperCase() : "", r.side === "A" ? "Aff" : r.side === "N" ? "Neg" : ""]
+      .filter(Boolean).map(esc).join(", ");
+    html += '<li><div class="lib-row"><button type="button" class="lib-open" data-lib="' + esc(r.id) + '" aria-expanded="false" aria-controls="lb' + i + '">'
+      + '<span class="lib-tag"><span class="caret" aria-hidden="true">&#9656;</span>' + esc(r.tag) + "</span>"
+      + '<span class="lib-meta">' + meta + " &nbsp; <strong>read by " + (r.times_read || 0) + (r.times_read === 1 ? " team" : " teams") + "</strong></span></button>"
+      + '<button type="button" class="btn" data-keep="' + esc(r.id) + '" aria-pressed="false">Keep</button></div>'
+      + '<div class="lib-body" id="lb' + i + '" hidden></div></li>';
+  });
+  if (html) { ul.insertAdjacentHTML("beforeend", html); $("libMsg").innerHTML = ""; syncKeepButtons(); }
+}
+
+async function toggleLib(btn) {
+  var box = $(btn.getAttribute("aria-controls")), open = btn.getAttribute("aria-expanded") === "true";
+  btn.setAttribute("aria-expanded", String(!open)); box.hidden = open;
+  if (open || box.dataset.loaded) return;
+  box.innerHTML = '<p class="sub">Loading card…</p>';
+  try {
+    var c = await getCard(btn.getAttribute("data-lib"));
+    box.innerHTML = cardHtml(c); box.dataset.loaded = "1";
+  } catch (e) { box.innerHTML = '<p class="err">' + esc(e.message) + "</p>"; }
+}
+
+/* ---------- cut from a link ---------- */
+$("linkForm").addEventListener("submit", async function (e) {
+  e.preventDefault();
+  var url = $("lUrl").value.trim(), claim = $("lClaim").value.trim(), st = $("lStatus"), errBox = $("lErr"), btn = $("lBtn");
+  errBox.innerHTML = "";
+  if (!/^https?:\/\/\S+\.\S+/i.test(url)) { errBox.innerHTML = '<p class="err">Paste a full link that starts with https://</p>'; $("lUrl").focus(); return; }
+  if (!claim) { errBox.innerHTML = '<p class="err">Say what the card should prove.</p>'; $("lClaim").focus(); return; }
+  btn.disabled = true; st.style.color = "var(--ink-2)";
+  var stage = "open that page";
+  try {
+    st.textContent = "Opening the page…";
+    var src = await api("/api/fetch", { url: url });
+    var meta = src.meta || {};
+    stage = "find a passage for that claim";
+    st.textContent = "Finding the best passage…";
+    var s = await api("/api/suggest", { source_id: src.source_id, claim: claim });
+    stage = "cut the card";
+    st.textContent = "Cutting & verifying…";
+    var out = await api("/api/cut", {
+      source_id: src.source_id, tag: claim,
+      author: meta.author || "", date: meta.date || "", title: meta.title || "", publisher: meta.publisher || "",
+      url: meta.url || url, quals: $("lQuals").value.trim(),
+      start_quote: s.start_quote, end_quote: s.end_quote,
+      highlight: s.highlight || [], underline: s.underline || [], paragraph: s.paragraph
     });
+    cache[out.card.id] = out.card;
+    $("lOut").insertAdjacentHTML("afterbegin", cardHtml(out.card, { fresh: true, url: meta.url || url, warnings: out.warnings }));
+    st.style.color = ""; st.textContent = "Card cut and verified.";
+  } catch (err) {
+    st.textContent = "";
+    var tip = err.status === 422 ? " Try a more specific claim, or a different article." :
+      err.status === 429 ? "" : err.status === 404 ? " Paste the link again to reopen it." : "";
+    errBox.innerHTML = '<p class="err">Couldn\'t ' + esc(stage) + ": " + esc(err.message.replace(/[.\s]*$/, ".")) + esc(tip) + "</p>";
+  } finally { btn.disabled = false; }
+});
+
+/* ---------- My cards tray ---------- */
+var tray = $("tray");
+$("trayBtn").addEventListener("click", function () { renderTray(); tray.showModal(); });
+function renderTray() {
+  var ol = $("kept");
+  $("keptEmpty").hidden = kept.length > 0;
+  $("keptTools").hidden = !kept.length;
+  $("expNote").hidden = !kept.some(function (k) { return k.id.indexOf("c_") === 0; });
+  ol.innerHTML = kept.map(function (k, i) {
+    return "<li><input class=\"field\" data-ki=\"" + i + "\" value=\"" + esc(k.tag) + "\" aria-label=\"Tag for card " + (i + 1) + "\">"
+      + '<span class="kctl"><span class="kid">' + esc(cache[k.id] ? cache[k.id].cite_short : k.id) + "</span>"
+      + '<button type="button" class="ib" data-mv="-1" data-i="' + i + '" aria-label="Move card ' + (i + 1) + ' up"' + (i ? "" : " disabled") + ">&uarr;</button>"
+      + '<button type="button" class="ib" data-mv="1" data-i="' + i + '" aria-label="Move card ' + (i + 1) + ' down"' + (i < kept.length - 1 ? "" : " disabled") + ">&darr;</button>"
+      + '<button type="button" class="ib" data-rm="' + i + '" aria-label="Remove card ' + (i + 1) + '">Remove</button></span></li>';
+  }).join("");
+}
+$("kept").addEventListener("click", function (e) {
+  var b = e.target.closest("button"); if (!b) return;
+  if (b.hasAttribute("data-rm")) { kept.splice(+b.getAttribute("data-rm"), 1); say("Removed."); }
+  else {
+    var i = +b.getAttribute("data-i"), j = i + (+b.getAttribute("data-mv"));
+    var t = kept[i]; kept[i] = kept[j]; kept[j] = t;
   }
+  saveKept(); renderTray(); syncKeepButtons();
+  var again = b.hasAttribute("data-mv") && $("kept").querySelector('[data-i="' + (+b.getAttribute("data-i") + (+b.getAttribute("data-mv"))) + '"][data-mv="' + b.getAttribute("data-mv") + '"]');
+  if (again && !again.disabled) again.focus();
+});
+$("kept").addEventListener("change", function (e) {
+  var i = e.target.getAttribute("data-ki"); if (i == null) return;
+  var t = e.target.value.trim(); if (!t) { e.target.value = kept[i].tag; return; }
+  setKeptTag(+i, t);
+  var el = document.querySelector('[data-tag="' + CSS.escape(kept[i].id) + '"]'); if (el) el.textContent = t;
+});
 
-  /* ---------- health status (same logic as landing.html) ---------- */
-  function wireHealth() {
-    var dot = $("statusDot"), text = $("statusText");
-    var MAX_RETRIES = 6, RETRY_MS = 15000, attempts = 0;
-    function setStatus(kind, msg) { dot.className = "dot " + kind; text.textContent = msg; }
-    function fetchWithTimeout(url, ms) {
-      var controller = ("AbortController" in window) ? new AbortController() : null;
-      var opts = controller ? { signal: controller.signal } : {};
-      var timer = controller ? setTimeout(function () { controller.abort(); }, ms) : null;
-      return fetch(url, opts).finally(function () { if (timer) clearTimeout(timer); });
-    }
-    function checkHealth() {
-      attempts++;
-      fetchWithTimeout("/health", 8000).then(function (res) {
-        if (res.status === 200) setStatus("online", "Online");
-        else if (res.status === 503) handleWaking();
-        else setStatus("down", "Down: try again shortly");
-      }).catch(function () { handleWaking(); });
-    }
-    function handleWaking() {
-      if (attempts < MAX_RETRIES) { setStatus("waking", "Waking up, about 1 minute…"); setTimeout(checkHealth, RETRY_MS); }
-      else setStatus("down", "Down: try again shortly");
-    }
-    checkHealth();
-  }
-
-  /* ================= SEARCH ================= */
-  var searchForm = $("searchForm"), searchQ = $("searchQ"), searchSort = $("searchSort"),
-      searchSide = $("searchSide"), searchEvent = $("searchEvent"),
-      searchStatus = $("searchStatus"), searchResults = $("searchResults");
-
-  function renderResults(results) {
-    if (!results.length) {
-      searchResults.innerHTML = '<li class="empty">No cards matched. Try a broader phrase, or: '
-        + '<button type="button" class="link-btn" data-ex="cards saying data centers raise electricity bills">data centers raise electricity bills</button></li>';
-      return;
-    }
-    searchResults.innerHTML = results.map(function (r) {
-      return '<li><button type="button" class="result-btn" data-id="' + escapeHtml(r.id) + '">'
-        + '<span class="result-tag">' + escapeHtml(r.tag) + "</span>"
-        + '<span class="result-meta">' + escapeHtml(r.cite) + " &middot; " + escapeHtml(String(r.year || "")) + " &middot; "
-        + escapeHtml((r.event || "").toUpperCase()) + (r.side ? " &middot; " + escapeHtml(r.side) : "")
-        + " &middot; read by " + (r.times_read || 0) + " teams</span>"
-        + '<span class="result-snippet">' + escapeHtml(r.highlighted || "") + "</span>"
-        + "</button></li>";
-    }).join("");
-  }
-
-  async function doSearch() {
-    var q = searchQ.value.trim();
-    if (!q) { searchStatus.textContent = "Type something to search for."; searchStatus.className = "status-line"; return; }
-    searchStatus.textContent = "Searching…"; searchStatus.className = "status-line";
-    searchResults.innerHTML = "";
-    var params = new URLSearchParams({ q: q, sort: searchSort.value });
-    if (searchSide.value) params.set("side", searchSide.value);
-    if (searchEvent.value) params.set("event", searchEvent.value);
+document.querySelectorAll("[data-export]").forEach(function (b) {
+  b.addEventListener("click", async function () {
+    var fmt = b.getAttribute("data-export"), st = $("expStatus"), eb = $("expErr");
+    eb.innerHTML = ""; st.textContent = "Building your file…";
+    var items = [];
+    kept.forEach(function (k) { items.push(k.tag ? { card: k.id, tag: k.tag } : { card: k.id }); });
     try {
-      var res = await api("/api/search?" + params.toString());
-      var data = await res.json();
-      renderResults(data.results || []);
-      var n = (data.results || []).length;
-      searchStatus.textContent = n + " card" + (n === 1 ? "" : "s") + " found.";
-    } catch (e) {
-      searchStatus.textContent = "Error: " + errMsg(e); searchStatus.className = "status-line err";
-    }
-  }
-  searchForm.addEventListener("submit", function (e) { e.preventDefault(); doSearch(); });
-  searchResults.addEventListener("click", function (e) {
-    var btn = e.target.closest(".result-btn");
-    if (btn) { openCard(btn.dataset.id); return; }
-    var ex = e.target.closest("[data-ex]");
-    if (ex) { searchQ.value = ex.dataset.ex; doSearch(); }
-  });
-
-  /* ---------- card dialog (shared by search results & doc cards) ---------- */
-  var cardDialog = $("cardDialog"), cardDialogTitle = $("cardDialogTitle"), cardDialogCite = $("cardDialogCite"),
-      cardRuns = $("cardRuns"), readOnlyToggle = $("readOnlyToggle"), cardActionStatus = $("cardActionStatus");
-  var currentCardId = null, currentCardData = null;
-
-  async function openCard(id) {
-    currentCardId = id; currentCardData = null;
-    cardDialogTitle.textContent = "Loading…"; cardDialogCite.textContent = ""; cardRuns.innerHTML = "";
-    cardActionStatus.textContent = ""; readOnlyToggle.checked = false; cardRuns.classList.remove("read-only");
-    cardDialog.showModal();
-    try {
-      var res = await api("/api/card/" + encodeURIComponent(id) + "?view=full");
-      var data = await res.json();
-      currentCardData = data;
-      cardDialogTitle.textContent = data.tag;
-      cardDialogCite.textContent = data.cite_short + (data.cite_rest ? " " + data.cite_rest : "");
-      cardRuns.innerHTML = renderRunsHtml(data.runs);
-    } catch (e) {
-      cardDialogTitle.textContent = "Could not load card";
-      cardRuns.textContent = errMsg(e);
-    }
-  }
-  $("cardDialogClose").addEventListener("click", function () { cardDialog.close(); });
-  readOnlyToggle.addEventListener("change", function () { cardRuns.classList.toggle("read-only", readOnlyToggle.checked); });
-
-  $("cardAddDoc").addEventListener("click", function () {
-    if (!currentCardData) return;
-    addCardToDoc(currentCardId, currentCardData.tag + " — " + currentCardData.cite_short);
-    cardActionStatus.textContent = "Added to doc.";
-  });
-
-  function formatPlain(data) {
-    var body = data.runs.map(function (r) {
-      var text = r[0], ul = r[1], hl = r[2];
-      if (hl) return "==" + text.toUpperCase() + "==";
-      if (ul) return "_" + text + "_";
-      return text;
-    }).join("");
-    return data.tag + "\n" + data.cite_short + (data.cite_rest ? " " + data.cite_rest : "") + "\n\n" + body;
-  }
-  function formatHtml(data) {
-    var body = data.runs.map(function (r) {
-      var t = escapeHtml(r[0]), ul = r[1], hl = r[2];
-      if (hl) return '<mark style="background:#12a89e;color:#06413d;text-decoration:underline;">' + t + "</mark>";
-      if (ul) return "<u>" + t + "</u>";
-      return '<span style="color:#828474;font-size:.85em;">' + t + "</span>";
-    }).join("");
-    return "<p><strong>" + escapeHtml(data.tag) + "</strong></p><p>" + escapeHtml(data.cite_short)
-      + (data.cite_rest ? " " + escapeHtml(data.cite_rest) : "") + "</p><p>" + body + "</p>";
-  }
-  $("cardCopy").addEventListener("click", async function () {
-    if (!currentCardData) return;
-    var plain = formatPlain(currentCardData), html = formatHtml(currentCardData);
-    try {
-      if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
-        var item = new ClipboardItem({
-          "text/plain": new Blob([plain], { type: "text/plain" }),
-          "text/html": new Blob([html], { type: "text/html" })
-        });
-        await navigator.clipboard.write([item]);
-      } else {
-        await copyText(plain);
-      }
-      cardActionStatus.textContent = "Copied.";
-    } catch (e) {
-      cardActionStatus.textContent = "Could not copy: " + errMsg(e);
-    }
-  });
-
-  /* ================= FIND ================= */
-  var findForm = $("findForm"), findQ = $("findQ"), findStatus = $("findStatus"), findResults = $("findResults");
-  var lastFindResults = [];
-
-  function renderFindResults(data) {
-    var results = data.results || [];
-    var html = "";
-    if (!results.length) {
-      html = '<p class="empty">No results. Try: <button type="button" class="link-btn" data-ex="data center electricity demand study">data center electricity demand study</button></p>';
-    } else {
-      html = results.map(function (r, i) {
-        var meta = r.kind === "paper"
-          ? escapeHtml((r.authors || []).join(", ")) + (r.quals ? " — " + escapeHtml(r.quals) : "")
-          : escapeHtml(r.source || "");
-        return '<div class="find-item"><p class="find-title">' + escapeHtml(r.title)
-          + (r.pdf_url ? '<span class="badge">PDF</span>' : "") + "</p>"
-          + '<p class="find-meta">' + meta + " &middot; " + escapeHtml(r.date || "") + "</p>"
-          + '<p class="find-snippet">' + escapeHtml(r.snippet || "") + "</p>"
-          + '<button type="button" class="secondary open-cut-btn" data-i="' + i + '">Open &amp; cut</button></div>';
-      }).join("");
-    }
-    if (data.skipped && data.skipped.length) {
-      html += '<p class="callout">Some sources were skipped: ' + escapeHtml(data.skipped.join(", ")) + "</p>";
-    }
-    findResults.innerHTML = html;
-    lastFindResults = results;
-  }
-  async function doFind() {
-    var q = findQ.value.trim();
-    if (!q) { findStatus.textContent = "Type something to search for."; return; }
-    findStatus.textContent = "Searching papers & news…"; findStatus.className = "status-line";
-    findResults.innerHTML = "";
-    try {
-      var res = await api("/api/find?" + new URLSearchParams({ q: q }).toString());
-      var data = await res.json();
-      renderFindResults(data);
-      findStatus.textContent = (data.results || []).length + " result(s).";
-    } catch (e) {
-      findStatus.textContent = "Error: " + errMsg(e); findStatus.className = "status-line err";
-    }
-  }
-  findForm.addEventListener("submit", function (e) { e.preventDefault(); doFind(); });
-  findResults.addEventListener("click", function (e) {
-    var btn = e.target.closest(".open-cut-btn");
-    if (btn) { var r = lastFindResults[Number(btn.dataset.i)]; if (r) doFetch(r.url); return; }
-    var ex = e.target.closest("[data-ex]");
-    if (ex) { findQ.value = ex.dataset.ex; doFind(); }
-  });
-
-  /* ---------- fetch + cut workspace ---------- */
-  var fetchForm = $("fetchForm"), fetchUrl = $("fetchUrl"), fetchStatus = $("fetchStatus"),
-      cutWorkspace = $("cutWorkspace"), fetchParagraphs = $("fetchParagraphs"),
-      claimInput = $("claimInput"), suggestBtn = $("suggestBtn"), suggestStatus = $("suggestStatus"),
-      suggestWorkspace = $("suggestWorkspace"), passageEl = $("passageEl"),
-      citeTag = $("citeTag"), citeAuthor = $("citeAuthor"), citeDate = $("citeDate"),
-      citeTitle = $("citeTitle"), citePublisher = $("citePublisher"), citeUrl = $("citeUrl"), citeQuals = $("citeQuals"),
-      cutBtn = $("cutBtn"), cutStatus = $("cutStatus"), cutResult = $("cutResult");
-
-  var currentSourceId = null;
-  var suggest = { paragraph: "", start_quote: "", end_quote: "", flags: [] };
-
-  async function doFetch(url) {
-    if (!url) return;
-    fetchStatus.textContent = "Fetching…"; fetchStatus.className = "status-line";
-    suggestWorkspace.hidden = true; cutResult.hidden = true;
-    try {
-      var res = await api("/api/fetch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: url }) });
-      var data = await res.json();
-      currentSourceId = data.source_id;
-      fetchParagraphs.innerHTML = (data.paragraphs || []).map(function (p) { return "<li>" + escapeHtml(p) + "</li>"; }).join("");
-      var meta = data.meta || {};
-      citeAuthor.value = meta.author || ""; citeDate.value = meta.date || ""; citeTitle.value = meta.title || "";
-      citePublisher.value = meta.publisher || ""; citeUrl.value = meta.url || url; citeQuals.value = ""; citeTag.value = "";
-      cutWorkspace.hidden = false;
-      fetchStatus.textContent = "Loaded " + (data.paragraphs || []).length + " paragraphs.";
-      cutWorkspace.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" });
-    } catch (e) {
-      fetchStatus.textContent = "Error: " + errMsg(e); fetchStatus.className = "status-line err";
-    }
-  }
-  fetchForm.addEventListener("submit", function (e) { e.preventDefault(); doFetch(fetchUrl.value.trim()); });
-
-  function buildFlags(text, hl, ul) {
-    var flags = new Array(text.length).fill(0);
-    function mark(arr, val) {
-      (arr || []).forEach(function (sub) {
-        if (!sub) return;
-        var idx = 0, i;
-        while (idx <= text.length && (i = text.indexOf(sub, idx)) !== -1) {
-          for (var k = i; k < i + sub.length; k++) flags[k] = val;
-          idx = i + sub.length;
-        }
-      });
-    }
-    mark(hl, 1); mark(ul, 2);
-    return flags;
-  }
-  function groupFlags(text, flags) {
-    if (!text.length) return [["", false, false]];
-    var runs = [], start = 0;
-    for (var i = 1; i <= text.length; i++) {
-      if (i === text.length || flags[i] !== flags[start]) {
-        runs.push([text.slice(start, i), flags[start] === 2, flags[start] === 1]);
-        start = i;
-      }
-    }
-    return runs;
-  }
-  function flagsToArrays(text, flags) {
-    var highlight = [], underline = [], start = 0;
-    for (var i = 1; i <= text.length; i++) {
-      if (i === text.length || flags[i] !== flags[start]) {
-        var seg = text.slice(start, i);
-        if (flags[start] === 1) highlight.push(seg);
-        else if (flags[start] === 2) underline.push(seg);
-        start = i;
-      }
-    }
-    return { highlight: highlight, underline: underline };
-  }
-  function renderPassage() { passageEl.innerHTML = renderRunsHtml(groupFlags(suggest.paragraph, suggest.flags)); }
-
-  /* clone the range from container-start to selection-start and measure its length: a standard,
-     dependency-free way to map a DOM Selection back to a plain-text character offset. */
-  function getSelectionOffsets(container) {
-    var sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return null;
-    var range = sel.getRangeAt(0);
-    if (!container.contains(range.commonAncestorContainer)) return null;
-    var text = range.toString();
-    if (!text) return null;
-    var pre = document.createRange();
-    pre.selectNodeContents(container);
-    pre.setEnd(range.startContainer, range.startOffset);
-    var start = pre.toString().length;
-    return { start: start, end: start + text.length };
-  }
-  function applyMark(val) {
-    var off = getSelectionOffsets(passageEl);
-    if (!off) { suggestStatus.textContent = "Select some text in the passage first."; return; }
-    for (var k = off.start; k < off.end; k++) suggest.flags[k] = val;
-    renderPassage();
-  }
-  $("markHighlight").addEventListener("click", function () { applyMark(1); });
-  $("markUnderline").addEventListener("click", function () { applyMark(2); });
-  $("markClear").addEventListener("click", function () { applyMark(0); });
-
-  async function doSuggest() {
-    var claim = claimInput.value.trim();
-    if (!claim) { suggestStatus.textContent = "Enter a claim first."; return; }
-    if (!currentSourceId) { suggestStatus.textContent = "Fetch a source first."; return; }
-    suggestStatus.textContent = "Suggesting…"; suggestStatus.className = "status-line";
-    try {
-      var res = await api("/api/suggest", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source_id: currentSourceId, claim: claim }) });
-      var data = await res.json();
-      suggest.paragraph = data.paragraph || "";
-      suggest.start_quote = data.start_quote || "";
-      suggest.end_quote = data.end_quote || "";
-      suggest.flags = buildFlags(suggest.paragraph, data.highlight, data.underline);
-      renderPassage();
-      suggestWorkspace.hidden = false;
-      suggestStatus.textContent = "Suggested passage" + (data.score != null ? " (score " + Number(data.score).toFixed(2) + ")" : "") + ". Adjust highlighting, then fill in the cite.";
-    } catch (e) {
-      suggestStatus.textContent = "Error: " + errMsg(e); suggestStatus.className = "status-line err";
-    }
-  }
-  suggestBtn.addEventListener("click", doSuggest);
-
-  async function doCut() {
-    if (!currentSourceId) { cutStatus.textContent = "Fetch a source first."; return; }
-    if (!citeQuals.value.trim()) { cutStatus.textContent = "Author qualifications are required."; citeQuals.focus(); return; }
-    var marks = flagsToArrays(suggest.paragraph, suggest.flags);
-    var body = {
-      source_id: currentSourceId,
-      tag: citeTag.value.trim(), author: citeAuthor.value.trim(), date: citeDate.value.trim(),
-      title: citeTitle.value.trim(), publisher: citePublisher.value.trim(), url: citeUrl.value.trim(),
-      quals: citeQuals.value.trim(), start_quote: suggest.start_quote, end_quote: suggest.end_quote,
-      paragraph: suggest.paragraph, highlight: marks.highlight, underline: marks.underline
-    };
-    cutStatus.textContent = "Cutting…"; cutStatus.className = "status-line"; cutResult.hidden = true;
-    try {
-      var res = await api("/api/cut", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      var data = await res.json();
-      var warnings = (data.warnings || []).map(function (w) { return "<li>" + escapeHtml(w) + "</li>"; }).join("");
-      cutResult.innerHTML = '<h3 class="serif">' + escapeHtml(data.card.tag) + "</h3>"
-        + '<p class="cite">' + escapeHtml(data.card.cite_short) + (data.card.cite_rest ? " " + escapeHtml(data.card.cite_rest) : "") + "</p>"
-        + '<div class="runs">' + renderRunsHtml(data.card.runs) + "</div>"
-        + (warnings ? '<ul class="callout">' + warnings + "</ul>" : "")
-        + '<button type="button" class="secondary" id="cutAddDoc">Add to doc</button>';
-      cutResult.hidden = false;
-      $("cutAddDoc").addEventListener("click", function () {
-        addCardToDoc(data.card.id, data.card.tag + " — " + data.card.cite_short);
-        cutStatus.textContent = "Added to doc.";
-      });
-      cutStatus.textContent = "Card cut and verified.";
-    } catch (e) {
-      if (e.status === 422) {
-        cutResult.innerHTML = '<p class="banner-error">' + escapeHtml(e.message) + "</p>";
-        cutResult.hidden = false;
-        cutStatus.textContent = "Rejected — the text didn't match the source verbatim.";
-      } else {
-        cutStatus.textContent = "Error: " + errMsg(e);
-      }
-      cutStatus.className = "status-line err";
-    }
-  }
-  cutBtn.addEventListener("click", doCut);
-
-  /* ================= DOC BUILDER ================= */
-  var TYPE_LABELS = { pocket: "Pocket", hat: "Hat", block: "Block", tag: "Tag", text: "Text", card: "Card" };
-  var docTitle = $("docTitle"), docItemsEl = $("docItems");
-  var doc = loadDoc();
-
-  function loadDoc() {
-    try {
-      var raw = localStorage.getItem("pf-doc");
-      if (raw) { var parsed = JSON.parse(raw); if (parsed && Array.isArray(parsed.items)) return parsed; }
-    } catch (e) { /* ignore — start fresh */ }
-    return { title: "Untitled doc", items: [] };
-  }
-  function saveDoc() {
-    try { localStorage.setItem("pf-doc", JSON.stringify(doc)); } catch (e) { /* storage unavailable — doc still works this session */ }
-  }
-  function addCardToDoc(id, label) {
-    doc.items.push({ type: "card", id: id, label: label });
-    saveDoc(); renderDocPanel();
-  }
-
-  function renderDocPanel() {
-    docTitle.value = doc.title;
-    if (!doc.items.length) {
-      docItemsEl.innerHTML = '<li class="empty">No items yet. Add a heading or text below, or "Add to doc" from a card.</li>';
-      return;
-    }
-    docItemsEl.innerHTML = doc.items.map(function (it, i) {
-      var body;
-      if (it.type === "card") body = '<span class="doc-card-label">' + escapeHtml(it.label) + "</span>";
-      else if (it.type === "text") body = '<textarea data-i="' + i + '" class="doc-text" aria-label="Text item ' + (i + 1) + '">' + escapeHtml(it.text) + "</textarea>";
-      else body = '<input data-i="' + i + '" class="doc-heading" aria-label="' + TYPE_LABELS[it.type] + " item " + (i + 1) + '" value="' + escapeHtml(it.text) + '">';
-      return '<li class="doc-item"><span class="doc-type">' + TYPE_LABELS[it.type] + "</span>" + body
-        + '<span class="doc-controls">'
-        + '<button type="button" data-act="up" data-i="' + i + '" aria-label="Move item ' + (i + 1) + ' up"' + (i === 0 ? " disabled" : "") + ">&uarr;</button>"
-        + '<button type="button" data-act="down" data-i="' + i + '" aria-label="Move item ' + (i + 1) + ' down"' + (i === doc.items.length - 1 ? " disabled" : "") + ">&darr;</button>"
-        + '<button type="button" data-act="remove" data-i="' + i + '" aria-label="Remove item ' + (i + 1) + '">Remove</button>'
-        + "</span></li>";
-    }).join("");
-  }
-  docItemsEl.addEventListener("click", function (e) {
-    var btn = e.target.closest("button[data-act]"); if (!btn) return;
-    var i = Number(btn.dataset.i), act = btn.dataset.act;
-    if (act === "up" && i > 0) { var a = doc.items[i - 1]; doc.items[i - 1] = doc.items[i]; doc.items[i] = a; }
-    else if (act === "down" && i < doc.items.length - 1) { var b = doc.items[i + 1]; doc.items[i + 1] = doc.items[i]; doc.items[i] = b; }
-    else if (act === "remove") { doc.items.splice(i, 1); }
-    saveDoc(); renderDocPanel();
-  });
-  docItemsEl.addEventListener("change", function (e) {
-    var i = Number(e.target.dataset.i);
-    if (Number.isNaN(i) || !doc.items[i]) return;
-    doc.items[i].text = e.target.value;
-    saveDoc();
-  });
-  docTitle.addEventListener("change", function () { doc.title = docTitle.value; saveDoc(); });
-
-  $("addHeadingForm").addEventListener("submit", function (e) {
-    e.preventDefault();
-    var type = $("headingType").value, text = $("headingText").value.trim();
-    doc.items.push({ type: type, text: text || TYPE_LABELS[type] });
-    $("headingText").value = ""; saveDoc(); renderDocPanel();
-  });
-  $("addTextForm").addEventListener("submit", function (e) {
-    e.preventDefault();
-    var text = $("freeText").value.trim();
-    if (!text) return;
-    doc.items.push({ type: "text", text: text });
-    $("freeText").value = ""; saveDoc(); renderDocPanel();
-  });
-
-  function itemsForExport() {
-    return doc.items.map(function (it) {
-      if (it.type === "card") return { card: it.id };
-      var o = {}; o[it.type] = it.text || ""; return o;
-    });
-  }
-  async function doExport(format) {
-    if (!doc.items.length) { $("exportStatus").textContent = "Add something to the doc first."; return; }
-    $("exportStatus").textContent = "Exporting…"; $("exportStatus").className = "status-line";
-    try {
-      var res = await api("/api/export", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: doc.title, items: itemsForExport(), format: format })
-      });
+      var res = await api("/api/export", { title: $("docTitle").value.trim() || "My cards", items: items, format: fmt }, true);
       var blob = await res.blob();
-      var cd = res.headers.get("Content-Disposition") || "";
-      var m = /filename="?([^";]+)"?/.exec(cd);
-      var filename = m ? m[1] : (doc.title || "debate-doc").replace(/[^\w.-]+/g, "_") + ".docx";
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement("a"); a.href = url; a.download = filename;
+      var m = /filename="?([^";]+)"?/.exec(res.headers.get("Content-Disposition") || "");
+      var name = m ? m[1] : "pf-cards." + (fmt === "gdocs" ? "html" : "docx");
+      var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
       document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
-      $("exportStatus").textContent = "Downloaded " + filename + ".";
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+      st.textContent = "Downloaded " + name + ".";
     } catch (e) {
-      $("exportStatus").textContent = "Error: " + errMsg(e); $("exportStatus").className = "status-line err";
+      st.textContent = "";
+      eb.innerHTML = '<p class="err">Export failed: ' + esc(e.message) + (e.status === 404 ? " A card from a new source probably expired. Remove it and export again." : "") + "</p>";
     }
-  }
-  $("exportDocx").addEventListener("click", function () { doExport("docx"); });
-  $("exportGdocs").addEventListener("click", function () { doExport("gdocs"); });
-
-  /* ================= ASK THE AI ================= */
-  var chatLog = $("chatLog"), chatForm = $("chatForm"), chatInput = $("chatInput"), chatStatus = $("chatStatus"),
-      modelStatus = $("modelStatus");
-  var chatMessages = [];
-  var systemPrompt = null, toolsSchema = null;
-  var modelSource = "free";
-  var puterLoading = null;
-
-  function renderMarkdown(raw) {
-    var s = escapeHtml(raw);
-    s = s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-    s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
-    var lines = s.split("\n"), html = "", inList = false;
-    lines.forEach(function (line) {
-      if (/^\s*[-*]\s+/.test(line)) {
-        if (!inList) { html += "<ul>"; inList = true; }
-        html += "<li>" + line.replace(/^\s*[-*]\s+/, "") + "</li>";
-      } else {
-        if (inList) { html += "</ul>"; inList = false; }
-        if (line.trim()) html += "<p>" + line + "</p>";
-      }
-    });
-    if (inList) html += "</ul>";
-    return html;
-  }
-  function appendChatMsg(role, text) {
-    var div = document.createElement("div");
-    div.className = "msg msg-" + role;
-    div.innerHTML = renderMarkdown(text || "");
-    chatLog.appendChild(div);
-    chatLog.scrollTop = chatLog.scrollHeight;
-  }
-  function appendToolStep(name, argsStr, resultStr, isError) {
-    var details = document.createElement("details");
-    details.className = "tool-step" + (isError ? " tool-error" : "");
-    var summary = document.createElement("summary");
-    summary.textContent = "Tool: " + name;
-    details.appendChild(summary);
-    var pre = document.createElement("pre");
-    pre.textContent = "Arguments: " + argsStr + "\n\nResult: " + resultStr;
-    details.appendChild(pre);
-    chatLog.appendChild(details);
-    chatLog.scrollTop = chatLog.scrollHeight;
-  }
-  function setChatBusy(busy) {
-    chatInput.disabled = busy;
-    chatForm.querySelector('button[type="submit"]').disabled = busy;
-  }
-  function showChatError(e) {
-    if (e && e.exhausted) {
-      chatStatus.textContent = 'The free AI is used up for today. Switch to "Sign in with Puter" above for your own free allowance, or use the hand-off buttons below.';
-    } else {
-      chatStatus.textContent = "Error: " + errMsg(e);
-    }
-    chatStatus.className = "status-line err";
-  }
-
-  async function ensureSystemAndTools() {
-    if (systemPrompt !== null && toolsSchema !== null) return;
-    var sysRes = await api("/api/system"), toolsRes = await api("/api/tools");
-    var sysData = await sysRes.json(), toolsData = await toolsRes.json();
-    systemPrompt = sysData.prompt || "";
-    toolsSchema = Array.isArray(toolsData) ? toolsData : (toolsData.tools || []);
-  }
-
-  /* Puter.js: loaded only after the user picks "Sign in with Puter". puter.ai.chat()
-     prompts its own sign-in popup automatically on first call — no separate signIn() needed. */
-  function ensurePuter() {
-    if (window.puter) return Promise.resolve();
-    if (puterLoading) return puterLoading;
-    puterLoading = new Promise(function (resolve, reject) {
-      var s = document.createElement("script");
-      s.src = "https://js.puter.com/v2/";
-      s.onload = function () { resolve(); };
-      s.onerror = function () { reject(new Error("Could not load Puter.js")); };
-      document.head.appendChild(s);
-    });
-    return puterLoading;
-  }
-
-  async function callModel() {
-    if (modelSource === "free") {
-      var res;
-      try {
-        res = await api("/api/llm", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: chatMessages, tools: toolsSchema })
-        });
-      } catch (e) {
-        if (e.status === 429 && e.body && e.body.exhausted) { var ex = new Error("exhausted"); ex.exhausted = true; throw ex; }
-        throw e;
-      }
-      var data = await res.json();
-      return data.message;
-    }
-    await ensurePuter();
-    // ponytail: model id picked for tool-calling support; update if Puter changes its capable-model roster.
-    var result = await puter.ai.chat(chatMessages, { tools: toolsSchema, model: "gpt-4o" });
-    return result && result.message ? result.message : result;
-  }
-
-  async function runAgentLoop() {
-    var steps = 0;
-    setChatBusy(true);
-    try {
-      while (steps < 12) {
-        steps++;
-        var msg = await callModel();
-        if (!msg) break;
-        chatMessages.push(msg);
-        if (msg.content) appendChatMsg("assistant", msg.content);
-        if (!msg.tool_calls || !msg.tool_calls.length) break;
-        for (var i = 0; i < msg.tool_calls.length; i++) {
-          var call = msg.tool_calls[i];
-          var name = call.function.name;
-          var args = {};
-          try { args = JSON.parse(call.function.arguments || "{}"); } catch (e) { /* leave args empty */ }
-          var toolRes;
-          try {
-            var r = await api("/api/tool/" + encodeURIComponent(name), {
-              method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ arguments: args })
-            });
-            toolRes = await r.json();
-          } catch (e) {
-            toolRes = { content: "Error: " + errMsg(e), is_error: true };
-          }
-          appendToolStep(name, JSON.stringify(args), toolRes.content, toolRes.is_error);
-          chatMessages.push({ role: "tool", tool_call_id: call.id, content: toolRes.content });
-        }
-      }
-    } catch (e) {
-      showChatError(e);
-    } finally {
-      setChatBusy(false);
-    }
-  }
-
-  async function sendChat() {
-    var text = chatInput.value.trim();
-    if (!text) return;
-    chatStatus.textContent = "Thinking…"; chatStatus.className = "status-line";
-    try {
-      await ensureSystemAndTools();
-    } catch (e) {
-      showChatError(e); return;
-    }
-    if (!chatMessages.length) chatMessages.push({ role: "system", content: systemPrompt });
-    chatMessages.push({ role: "user", content: text });
-    appendChatMsg("user", text);
-    chatInput.value = "";
-    await runAgentLoop();
-    if (chatStatus.className.indexOf("err") === -1) chatStatus.textContent = "";
-  }
-  chatForm.addEventListener("submit", function (e) { e.preventDefault(); sendChat(); });
-  document.querySelectorAll('.try-prompts [data-ex]').forEach(function (b) {
-    b.addEventListener("click", function () { chatInput.value = b.dataset.ex; sendChat(); });
   });
+});
 
-  document.querySelectorAll('input[name="modelSrc"]').forEach(function (radio) {
-    radio.addEventListener("change", async function (e) {
-      modelSource = e.target.value;
-      if (modelSource === "puter") {
-        modelStatus.textContent = "Loading Puter…";
-        try { await ensurePuter(); modelStatus.textContent = "Puter ready — it will prompt you to sign in on your first message."; }
-        catch (e2) { modelStatus.textContent = "Could not load Puter.js: " + errMsg(e2); }
-      } else {
-        modelStatus.textContent = "";
-      }
-    });
-  });
+/* ---------- Build a case ---------- */
+var caseDlg = $("caseDlg");
+function openCase() {
+  $("caseCards").textContent = kept.length ? "Uses your " + kept.length + " kept card" + (kept.length === 1 ? "" : "s") + ", and cuts more as needed." : "No kept cards yet: it will find and cut evidence itself.";
+  if (tray.open) tray.close();
+  caseDlg.showModal();
+}
+$("caseLink").addEventListener("click", openCase);
+$("trayCase").addEventListener("click", openCase);
 
-  /* ---------- hand-off ---------- */
-  async function buildHandoffPrompt() {
-    var userReq = $("handoffPrompt").value.trim();
-    if (!userReq) {
-      for (var i = chatMessages.length - 1; i >= 0; i--) {
-        if (chatMessages[i].role === "user") { userReq = chatMessages[i].content; break; }
-      }
-    }
-    try { await ensureSystemAndTools(); } catch (e) { /* proceed without it if the server is unreachable */ }
-    var cardsText = "";
-    for (var j = 0; j < doc.items.length; j++) {
-      var it = doc.items[j];
-      if (it.type !== "card") continue;
-      try {
-        var res = await api("/api/card/" + encodeURIComponent(it.id) + "?view=read");
-        var data = await res.json();
-        cardsText += "\n\n" + data.tag + "\n" + data.cite_short + (data.cite_rest ? " " + data.cite_rest : "") + "\n"
-          + (data.runs || []).map(function (r) { return r[0]; }).join("");
-      } catch (e) { /* card may have expired — skip it */ }
-    }
-    return (systemPrompt || "") + "\n\n--- Cards in my doc ---" + (cardsText || " (none yet)") + "\n\n--- My request ---\n" + (userReq || "(none given)");
+var sysPrompt = null, handoffPrompt = "";
+async function keptText() {
+  var out = [];
+  for (var i = 0; i < kept.length; i++) {
+    try {
+      var c = await api("/api/card/" + encodeURIComponent(kept[i].id) + "?view=read");
+      out.push("[" + kept[i].id + "] " + kept[i].tag + "\n" + c.cite_short + (c.cite_rest ? " " + c.cite_rest : "") + "\n" + c.runs.map(function (r) { return r[0]; }).join(""));
+    } catch (e) { /* expired card: skip */ }
   }
-  $("handoffChatGPT").addEventListener("click", async function () {
-    var status = $("handoffStatus");
-    status.textContent = "Preparing hand-off…"; status.className = "status-line";
-    try {
-      var prompt = await buildHandoffPrompt();
-      if (prompt.length < 6000) {
-        window.open("https://chatgpt.com/?q=" + encodeURIComponent(prompt), "_blank", "noopener");
-        status.textContent = "Opened ChatGPT with your prompt filled in.";
-      } else {
-        await copyText(prompt);
-        window.open("https://chatgpt.com", "_blank", "noopener");
-        status.textContent = "Prompt copied to clipboard (too long to prefill) — paste it into ChatGPT.";
-      }
-    } catch (e) { status.textContent = "Could not prepare hand-off: " + errMsg(e); status.className = "status-line err"; }
+  return out.join("\n\n");
+}
+function mdRender(raw) {
+  var lines = esc(raw || "").split("\n"), html = "", list = "";
+  function inline(s) { return s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>").replace(/`([^`]+)`/g, "<code>$1</code>"); }
+  function close() { if (list) { html += "</" + list + ">"; list = ""; } }
+  lines.forEach(function (l) {
+    var m;
+    if ((m = /^\s*#{1,6}\s+(.*)$/.exec(l))) { close(); html += "<h4>" + inline(m[1]) + "</h4>"; }
+    else if ((m = /^\s*[-*]\s+(.*)$/.exec(l))) { if (list !== "ul") { close(); html += "<ul>"; list = "ul"; } html += "<li>" + inline(m[1]) + "</li>"; }
+    else if ((m = /^\s*\d+[.)]\s+(.*)$/.exec(l))) { if (list !== "ol") { close(); html += "<ol>"; list = "ol"; } html += "<li>" + inline(m[1]) + "</li>"; }
+    else { close(); if (l.trim()) html += "<p>" + inline(l) + "</p>"; }
   });
-  $("handoffGemini").addEventListener("click", async function () {
-    var status = $("handoffStatus");
-    status.textContent = "Preparing hand-off…"; status.className = "status-line";
-    try {
-      var prompt = await buildHandoffPrompt();
-      await copyText(prompt);
-      window.open("https://gemini.google.com", "_blank", "noopener");
-      status.textContent = "Prompt copied to clipboard — paste it into Gemini.";
-    } catch (e) { status.textContent = "Could not prepare hand-off: " + errMsg(e); status.className = "status-line err"; }
-  });
+  close();
+  return html;
+}
+function toolLabel(name) {
+  return ({ search_cards: "Searching the card library", get_card: "Reading a card", find_sources: "Finding new sources",
+    fetch_source: "Opening a source", suggest_cut: "Picking a passage", cut_card: "Cutting a card", auto_cut: "Finding and cutting fresh cards",
+    export_doc: "Exporting", pf_guide: "Checking the PF guide", library_status: "Checking the library" })[name] || ("Using " + name);
+}
 
-  /* ---------- init ---------- */
-  wireTabs();
-  wireHealth();
-  renderDocPanel();
+$("caseForm").addEventListener("submit", async function (e) {
+  e.preventDefault();
+  var side = this.querySelector('input[name="side"]:checked').value, reso = $("cRes").value.trim(), focus = $("cFocus").value.trim();
+  if (!reso) { $("caseErr").innerHTML = '<p class="err">Enter the resolution.</p>'; $("cRes").focus(); return; }
+  var btn = $("caseBtn"), st = $("caseStatus"), log = $("caseLog");
+  $("caseErr").innerHTML = ""; $("caseOut").innerHTML = ""; log.innerHTML = ""; $("handoff").hidden = true;
+  btn.disabled = true; st.textContent = "Gathering your cards…";
+  var cards = await keptText();
+  var request = "Build a " + side + " case on the resolution \"" + reso + "\"" + (focus ? ", centered on " + focus : "") + ". "
+    + "Use my kept cards below where they fit (cite them by id). Cut more evidence with the auto_cut tool (or find_sources, fetch_source, suggest_cut and cut_card) where the case needs it. "
+    + "Write the case with contentions, taglines, the cards in order, and short impact weighing.";
+  var userMsg = request + "\n\n--- My kept cards ---\n" + (cards || "(none yet)");
+  try {
+    var got = await Promise.all([api("/api/system"), api("/api/tools")]);
+    sysPrompt = got[0].prompt || "";
+    var tools = Array.isArray(got[1]) ? got[1] : (got[1].tools || []);
+    var msgs = [{ role: "system", content: sysPrompt }, { role: "user", content: userMsg }], final = null;
+    for (var step = 0; step < 12; step++) {
+      st.textContent = "Thinking (step " + (step + 1) + " of up to 12)…";
+      var msg = (await api("/api/llm", { messages: msgs, tools: tools })).message;
+      if (!msg) break;
+      msgs.push(msg);
+      if (msg.content) final = msg.content;
+      if (!msg.tool_calls || !msg.tool_calls.length) break;
+      for (var i = 0; i < msg.tool_calls.length; i++) {
+        var call = msg.tool_calls[i], args = {};
+        try { args = JSON.parse(call.function.arguments || "{}"); } catch (x) { /* empty args */ }
+        log.insertAdjacentHTML("beforeend", "<li>" + esc(toolLabel(call.function.name)) + "…</li>");
+        var r;
+        try { r = await api("/api/tool/" + encodeURIComponent(call.function.name), { arguments: args }); }
+        catch (x) { r = { content: "Error: " + x.message, is_error: true }; }
+        msgs.push({ role: "tool", tool_call_id: call.id, content: String(r.content == null ? "" : r.content) });
+      }
+    }
+    if (!final) throw new Error("The AI didn't return a case.");
+    st.textContent = "Done.";
+    $("caseOut").innerHTML = '<div class="answer">' + mdRender(final) + "</div>";
+    say("Your case is ready.");
+  } catch (err) {
+    st.textContent = "";
+    $("caseErr").innerHTML = '<p class="err">' + (err.exhausted ? "The free AI is used up for today." : "Couldn't build the case here: " + esc(err.message))
+      + " You can hand it off to ChatGPT or Gemini below.</p>";
+    if (sysPrompt === null) { try { sysPrompt = (await api("/api/system")).prompt || ""; } catch (x) { sysPrompt = ""; } }
+    handoffPrompt = (sysPrompt ? sysPrompt + "\n\n" : "") + "--- My kept cards ---\n" + (cards || "(none yet)") + "\n\n--- My request ---\n" + request;
+    $("handoff").hidden = false; $("hoGpt").focus();
+  } finally { btn.disabled = false; }
+});
+$("hoGpt").addEventListener("click", async function () {
+  var st = $("hoStatus");
+  if (handoffPrompt.length < 6000) { window.open("https://chatgpt.com/?q=" + encodeURIComponent(handoffPrompt), "_blank", "noopener"); st.textContent = "Opened ChatGPT with your prompt filled in."; return; }
+  try { await copyPlain(handoffPrompt); st.textContent = "Prompt copied (too long to prefill). Paste it into ChatGPT."; }
+  catch (e) { st.textContent = "Couldn't copy: " + e.message; }
+  window.open("https://chatgpt.com/", "_blank", "noopener");
+});
+$("hoGem").addEventListener("click", async function () {
+  var st = $("hoStatus");
+  try { await copyPlain(handoffPrompt); st.textContent = "Prompt copied. Paste it into Gemini."; }
+  catch (e) { st.textContent = "Couldn't copy: " + e.message; }
+  window.open("https://gemini.google.com/app", "_blank", "noopener");
+});
+
+/* ---------- health (same retry logic as the landing page) ---------- */
+(function () {
+  var dot = $("dot"), text = $("statusText"), tries = 0;
+  function set(k, m) { dot.className = "dot " + k; text.textContent = m; }
+  function waking() { if (tries < 6) { set("waking", "Waking up, about 1 minute…"); setTimeout(check, 15000); } else set("down", "Down: try again later"); }
+  function check() {
+    tries++;
+    var ctl = window.AbortController ? new AbortController() : null, t = ctl && setTimeout(function () { ctl.abort(); }, 8000);
+    fetch(API_BASE + "/health", ctl ? { signal: ctl.signal } : {}).then(function (r) {
+      if (r.status === 200) set("online", "Online"); else if (r.status === 503) waking(); else set("down", "Down: try again later");
+    }).catch(waking).finally(function () { if (t) clearTimeout(t); });
+  }
+  check();
+})();
+
+syncKeepButtons();
+renderTray();
 })();
 </script>
 </body>

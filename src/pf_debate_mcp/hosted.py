@@ -118,6 +118,14 @@ def _register_api() -> None:
         meta = {k: src.get(k) for k in ("url", "title", "author", "date", "publisher")}
         return {"source_id": sid, "meta": meta, "paragraphs": server.paragraphs(src["text"])}
 
+    @mcp.custom_route("/api/autocut", methods=["POST"])
+    @_api("llm")  # heavier: fetches several pages, so it shares the tighter per-IP limit
+    def autocut(_, body):
+        r = server.auto_cut_cards(str(body.get("claim", "")), max(1, min(int(body.get("max_new", 4)), 6)))
+        return {"library": r["library"], "skipped": r["skipped"],
+                "new": [{"card": _card_json(x["card"]), "warnings": x["warnings"], "url": x["url"]}
+                        for x in r["new"]]}
+
     @mcp.custom_route("/api/suggest", methods=["POST"])
     @_api()
     def suggest(_, body):

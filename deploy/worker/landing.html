@@ -3,600 +3,244 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>pf-debate — a free debate partner for your AI</title>
-<meta name="description" content="A free, open-source MCP debate partner for Public Forum: real cut cards, verified word-for-word against their source. No account, no cost.">
+<title>pf-debate: free debate cards</title>
+<meta name="description" content="Find and cut Public Forum debate cards in seconds, free. Searches 173k already-cut cards and cuts fresh ones, verified word-for-word against the source.">
 <meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:,">
 <style>
-  :root {
-    --paper: #f0f1ea;
-    --paper-line: #d7d9cc;
-    --card: #fdfdfa;
-    --ink: #191a15;
-    --ink-soft: #52544a;
-    --ink-faint: #828474;
-    --yellow: #f2df1f;
-    --yellow-ink: #4a3f00;
-    --cyan: #12a89e;
-    --cyan-ink: #06413d;
-    --cyan-bg: #d8f3f1;
-    --red: #b3402b;
-    --red-bg: #f6ded8;
-    --amber: #a96a10;
-    --amber-bg: #f5e6cc;
-    --green: #1a7a3c;
-    --green-bg: #dcefe0;
-    --focus: #0b6b8c;
-    --radius: 3px;
-    --border: 1px solid var(--paper-line);
-    --shadow: 0 1px 0 rgba(25,26,21,.06);
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --paper: #17180f;
-      --paper-line: #35362a;
-      --card: #1e2015;
-      --ink: #eeefe3;
-      --ink-soft: #b7b9a7;
-      --ink-faint: #83857a;
-      --yellow: #e7d21b;
-      --yellow-ink: #2b2400;
-      --cyan: #2fd0c4;
-      --cyan-ink: #d9fbf7;
-      --cyan-bg: #10352f;
-      --red: #ff8b6f;
-      --red-bg: #3a1c14;
-      --amber: #f0b545;
-      --amber-bg: #3a2b0c;
-      --green: #7fe0a0;
-      --green-bg: #123b21;
-      --focus: #5fd0f0;
-    }
-  }
-  * { box-sizing: border-box; }
-  html { -webkit-text-size-adjust: 100%; }
-  body {
-    margin: 0;
-    background: var(--paper);
-    background-image: repeating-linear-gradient(
-      var(--paper),
-      var(--paper) 41px,
-      var(--paper-line) 42px
-    );
-    color: var(--ink);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    font-size: 16px;
-    line-height: 1.5;
-    min-width: 320px;
-    overflow-x: hidden;
-  }
-  .serif { font-family: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, "Times New Roman", serif; }
-  a { color: var(--cyan-ink); background: var(--cyan-bg); }
-  a, button { font: inherit; }
-  :focus-visible {
-    outline: 3px solid var(--focus);
-    outline-offset: 2px;
-    border-radius: 2px;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
-  }
+:root{
+  --paper:#fcfcfa; --card:#ffffff; --rule:#d6e2ef; --margin:#e6a3a8;
+  --ink:#15161c; --ink-2:#464957; --ink-3:#62667a;
+  --pen:#1d3fb8; --pen-bg:#e8edfc; --hl:#ffe94d; --hl-ink:#15140a;
+  --red:#b3232b; --green:#17703a; --green-bg:#e3f3e8; --amber-bg:#fff4c7;
+  --line:#dcdde3; --shadow:0 1px 0 #dcdde3, 0 6px 18px -10px rgba(21,22,28,.35);
+  --sans:system-ui,-apple-system,"Segoe UI Variable Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --serif:Charter,"Bitstream Charter","Iowan Old Style","Sitka Text",Cambria,Georgia,serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#11141c; --card:#191d28; --rule:#1f2738; --margin:#6a3439;
+  --ink:#eceef4; --ink-2:#b9bdcb; --ink-3:#969cb0;
+  --pen:#9db2ff; --pen-bg:#1f2a4d; --red:#ff9aa0; --green:#8ee0aa; --green-bg:#16331f; --amber-bg:#3a3313;
+  --line:#2c3243; --shadow:0 1px 0 #2c3243, 0 8px 20px -12px rgba(0,0,0,.8);
+}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 var(--sans);overflow-x:hidden}
+a{color:var(--pen);text-underline-offset:3px}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--pen);outline-offset:2px;border-radius:3px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px}
 
-  .wrap { max-width: 880px; margin: 0 auto; padding: 0 20px; }
+.top .wrap{display:flex;align-items:center;gap:8px 16px;flex-wrap:wrap;min-height:64px}
+.mark{font-weight:850;font-size:1.15rem;letter-spacing:-.02em;color:var(--ink);text-decoration:none;padding:8px 0;margin-right:auto}
+.mark b{background:var(--hl);color:var(--hl-ink);padding:0 .1em;margin-left:-.05em;border-radius:2px}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;color:var(--ink-2)}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--ink-3);flex:none}
+.dot.online{background:var(--green)} .dot.waking{background:#d99a00} .dot.down{background:var(--red)}
+.top a.gh{font-size:.9rem;color:var(--ink-2);padding:10px 2px}
 
-  header.site {
-    padding: 20px 0 4px;
-  }
-  header.site .wrap { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-  .wordmark { font-weight: 700; font-size: 1.05rem; letter-spacing: .01em; }
-  .wordmark span { color: var(--cyan-ink); }
-  header.site a.gh {
-    background: none;
-    text-decoration: underline;
-    text-decoration-color: var(--paper-line);
-    text-underline-offset: 3px;
-    color: var(--ink-soft);
-    font-size: .92rem;
-    padding: 10px 2px;
-  }
+/* hero: ruled paper with a margin line */
+.hero{position:relative;padding:40px 0 56px;border-bottom:1px solid var(--line);
+  background-image:repeating-linear-gradient(to bottom,transparent 0 39px,var(--rule) 39px 40px)}
+.hero::before{content:"";position:absolute;top:0;bottom:0;left:max(8px,calc(50% - 540px));width:2px;background:var(--margin);opacity:.75}
+.hero .wrap{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center}
+h1{margin:0 0 20px;font-size:clamp(2.3rem,8.2vw,4.4rem);line-height:1.02;letter-spacing:-.045em;font-weight:900;max-width:13ch}
+h1 span{background:linear-gradient(transparent 12%,var(--hl) 12% 90%,transparent 90%) no-repeat 0 0/100% 100%;color:var(--hl-ink);
+  -webkit-box-decoration-break:clone;box-decoration-break:clone;padding:0 .08em;animation:swipe .9s .2s cubic-bezier(.3,.7,.3,1) both}
+@keyframes swipe{from{background-size:0 100%}}
+.lede{font-size:1.12rem;color:var(--ink-2);max-width:46ch;margin:0 0 28px}
+.cta{display:inline-flex;align-items:center;min-height:56px;padding:12px 30px;border:2.5px solid var(--hl-ink);border-radius:8px;background:var(--hl);color:var(--hl-ink);
+  font-weight:850;font-size:1.2rem;text-decoration:none;box-shadow:4px 4px 0 var(--hl-ink)}
+.cta:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 var(--hl-ink)}
+.cta:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--hl-ink)}
+.fine{margin:16px 0 0;font-size:.88rem;color:var(--ink-3)}
 
-  /* ---- hero ---- */
-  .hero { padding: 28px 0 8px; }
-  .hero-grid {
-    display: grid;
-    grid-template-columns: 1.15fr 1fr;
-    gap: 32px;
-    align-items: start;
-  }
-  @media (max-width: 720px) {
-    .hero-grid { grid-template-columns: 1fr; }
-  }
-  h1.pitch {
-    font-size: clamp(1.7rem, 4.6vw, 2.55rem);
-    line-height: 1.15;
-    margin: 0 0 14px;
-    font-weight: 700;
-    max-width: 20ch;
-  }
-  .lede {
-    color: var(--ink-soft);
-    max-width: 58ch;
-    margin: 0 0 20px;
-  }
-  .lede strong { color: var(--ink); }
-  .age-note {
-    font-size: .85rem;
-    color: var(--ink-soft);
-    background: var(--cyan-bg);
-    border-left: 4px solid var(--cyan);
-    padding: 8px 10px;
-    border-radius: 0 2px 2px 0;
-    max-width: 58ch;
-    margin: 0 0 20px;
-  }
+/* sample card */
+.ev{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:18px 18px 14px;box-shadow:var(--shadow);transform:rotate(1.2deg)}
+.ev-tag{margin:0 0 6px;font-size:1.05rem;line-height:1.35;font-weight:800}
+.ev-cite{margin:0 0 10px;font-size:.82rem;color:var(--ink-2)}
+.ev-cite b{color:var(--ink);font-size:1rem}
+.ev-body{font-family:var(--serif);line-height:1.7;margin:0}
+.ev-body .u{text-decoration:underline;text-underline-offset:2px}
+.ev-body mark{color:var(--hl-ink);background:linear-gradient(transparent 6%,var(--hl) 6% 94%,transparent 94%);text-decoration:underline;text-underline-offset:2px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.ev-body .x{font-size:.72em;color:var(--ink-3)}
+.badge{display:inline-flex;gap:6px;margin-top:12px;font-size:.8rem;font-weight:700;color:var(--green);background:var(--green-bg);padding:4px 10px;border-radius:14px}
 
-  .connect {
-    background: var(--card);
-    border: var(--border);
-    border-radius: var(--radius);
-    padding: 16px;
-    box-shadow: var(--shadow);
-  }
-  .connect-label {
-    font-size: .82rem;
-    color: var(--ink-faint);
-    margin: 0 0 8px;
-  }
-  .copy-row {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-  #mcpLink {
-    flex: 1 1 220px;
-    min-width: 0;
-    font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-    font-size: .85rem;
-    padding: 12px 10px;
-    min-height: 44px;
-    border: 1px solid var(--paper-line);
-    border-radius: var(--radius);
-    background: var(--paper);
-    color: var(--ink);
-  }
-  .app-cta { display: inline-block; min-height: 44px; padding: 12px 22px; border-radius: 10px; font-weight: 700;
-    background: var(--yellow, #ffe45c); color: #1a1a1a; text-decoration: none; border: 2px solid currentColor; }
-  .app-cta:hover { filter: brightness(0.95); }
-  .app-cta:focus-visible { outline: 3px solid var(--cyan-ink, #0077a8); outline-offset: 3px; }
-  #copyBtn {
-    min-height: 44px;
-    padding: 10px 18px;
-    border: none;
-    border-radius: var(--radius);
-    background: var(--ink);
-    color: var(--paper);
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  #copyBtn:hover { background: var(--cyan-ink); }
-  #copyBtn.copied { background: var(--green); color: #06210f; }
-  #copyMsg {
-    min-height: 1.2em;
-    margin: 8px 0 0;
-    font-size: .85rem;
-    color: var(--green);
-    font-weight: 600;
-  }
+/* how it works */
+section{padding:56px 0}
+h2{font-size:clamp(1.4rem,4vw,1.9rem);letter-spacing:-.025em;margin:0 0 8px;line-height:1.15}
+.sub{color:var(--ink-2);margin:0 0 28px;max-width:60ch}
+.how{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:20px;counter-reset:s}
+.how li{counter-increment:s;position:relative;padding-top:8px}
+.how li::before{content:counter(s);position:absolute;top:-6px;left:0;font-weight:900;font-size:1.05rem;width:2rem;height:2rem;display:grid;place-items:center;border-radius:50%;background:var(--ink);color:var(--card);z-index:1}
+.how h3{margin:14px 0 4px;font-size:1.08rem}
+.how p{margin:0;color:var(--ink-2);font-size:.95rem}
+.pic{height:150px;border:1px solid var(--line);border-radius:4px;background:var(--card);margin-left:12px;padding:16px;overflow:hidden;position:relative}
+.pic-in{background-image:repeating-linear-gradient(to bottom,transparent 0 27px,var(--rule) 27px 28px);border-top:2px solid var(--margin);padding-top:18px;font-size:1rem;line-height:28px}
+.pic-in i{display:inline-block;width:2px;height:1.1em;background:var(--ink);vertical-align:-2px;margin-left:2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.pic-split{display:grid;grid-template-columns:1fr 1fr;gap:10px;height:100%}
+.pic-split div{border-radius:3px;padding:8px;font-size:.78rem;font-weight:700;display:flex;flex-direction:column;gap:6px}
+.pic-split .l{background:var(--pen-bg);color:var(--ink)}
+.pic-split .n{background:var(--amber-bg);color:var(--ink)}
+.bar{height:6px;border-radius:3px;background:currentColor;opacity:.22}
+.bar.s{width:60%}
+.pic-card{font-family:var(--serif);font-size:.82rem;line-height:1.6}
+.pic-card b{font-family:var(--sans)}
+.pic-card mark{background:var(--hl);color:var(--hl-ink)}
+.file{position:absolute;right:12px;bottom:12px;font-weight:800;font-size:.78rem;border:2px solid var(--ink);border-radius:4px;padding:2px 8px;background:var(--card)}
 
-  .status-row {
-    margin-top: 14px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    font-size: .88rem;
-    color: var(--ink-soft);
-  }
-  .dot {
-    width: 10px; height: 10px; border-radius: 50%;
-    background: var(--ink-faint);
-    flex: none;
-  }
-  .dot.online { background: var(--green); }
-  .dot.waking { background: var(--amber); }
-  .dot.down { background: var(--red); }
-  .stat-sep { color: var(--paper-line); }
+/* connector: secondary */
+.more{border-top:1px solid var(--line)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+.more h2{font-size:1.25rem}
+.more p,.more li{color:var(--ink-2);font-size:.95rem}
+.copy{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 6px}
+.copy input{flex:1 1 220px;min-width:0;min-height:44px;padding:10px 12px;border:1.5px solid var(--ink-3);border-radius:6px;background:var(--card);font-size:.95rem}
+.btn{min-height:44px;padding:8px 16px;border:1.5px solid var(--ink);border-radius:6px;background:var(--ink);color:var(--card);font-weight:700;cursor:pointer}
+.btn:hover{background:var(--pen);border-color:var(--pen)}
+.ok{color:var(--green);font-weight:600;font-size:.88rem;min-height:1.3em;margin:0}
+.more ul{padding-left:1.2em;margin:8px 0}
+.more li{margin-bottom:6px}
+.caveat{background:var(--amber-bg);padding:10px 12px;border-radius:4px;font-size:.88rem!important;color:var(--ink)!important}
 
-  /* ---- sample card (hero visual) ---- */
-  .card-demo {
-    background: var(--card);
-    border: var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    padding: 16px 16px 14px;
-    position: relative;
-  }
-  .card-demo::before {
-    content: "";
-    position: absolute;
-    top: -1px; left: 20px; right: 20px; height: 8px;
-    background: var(--yellow);
-    border-radius: 0 0 3px 3px;
-    opacity: .85;
-  }
-  .card-tag {
-    font-size: .72rem;
-    color: var(--ink-faint);
-    margin: 6px 0 8px;
-  }
-  .card-claim {
-    font-weight: 700;
-    margin: 0 0 8px;
-    font-size: .98rem;
-  }
-  .card-body { margin: 0 0 10px; font-size: .92rem; color: var(--ink-soft); }
-  .hl-y { background: var(--yellow); color: var(--yellow-ink); padding: 0 2px; }
-  .hl-c { border-bottom: 3px solid var(--cyan); }
-  .card-cite {
-    font-size: .78rem;
-    color: var(--ink-faint);
-    border-top: 1px dashed var(--paper-line);
-    padding-top: 8px;
-    margin: 0;
-  }
-  .card-verified {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 10px;
-    font-size: .78rem;
-    font-weight: 700;
-    color: var(--cyan-ink);
-    background: var(--cyan-bg);
-    padding: 4px 8px;
-    border-radius: 20px;
-  }
+footer{border-top:1px solid var(--line);padding:22px 0 40px;font-size:.85rem;color:var(--ink-3)}
+footer p{margin:0 0 8px}
 
-  /* ---- sections ---- */
-  main section { padding: 34px 0; }
-  h2 {
-    font-size: 1.3rem;
-    margin: 0 0 6px;
-  }
-  .section-note { color: var(--ink-soft); margin: 0 0 18px; max-width: 60ch; }
-
-  /* ---- tabs ---- */
-  .tablist {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    border-bottom: 2px solid var(--paper-line);
-    padding-bottom: 0;
-  }
-  .tablist [role="tab"] {
-    background: none;
-    border: none;
-    border-bottom: 3px solid transparent;
-    padding: 10px 12px;
-    min-height: 44px;
-    cursor: pointer;
-    color: var(--ink-soft);
-    font-weight: 600;
-    font-size: .92rem;
-  }
-  .tablist [role="tab"][aria-selected="true"] {
-    color: var(--ink);
-    border-bottom-color: var(--cyan);
-  }
-  .tablist [role="tab"]:hover { color: var(--ink); }
-
-  [role="tabpanel"] {
-    background: var(--card);
-    border: var(--border);
-    border-top: none;
-    border-radius: 0 0 var(--radius) var(--radius);
-    padding: 20px;
-  }
-  [role="tabpanel"] ol {
-    margin: 0 0 12px;
-    padding-left: 1.3em;
-  }
-  [role="tabpanel"] li { margin-bottom: 8px; }
-  [role="tabpanel"] a.link {
-    display: inline-block;
-    margin: 2px 0;
-    padding: 2px 4px;
-    border-radius: 2px;
-  }
-  .callout {
-    margin: 12px 0 0;
-    padding: 10px 12px;
-    border-left: 4px solid var(--amber);
-    background: var(--amber-bg);
-    color: var(--ink);
-    font-size: .88rem;
-    border-radius: 0 2px 2px 0;
-  }
-  .callout.info { border-left-color: var(--cyan); background: var(--cyan-bg); }
-
-  /* ---- try asking ---- */
-  .prompts {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-    gap: 12px;
-  }
-  .prompts li {
-    background: var(--card);
-    border: var(--border);
-    border-left: 4px solid var(--cyan);
-    border-radius: 0 var(--radius) var(--radius) 0;
-    padding: 14px 14px;
-    box-shadow: var(--shadow);
-    font-size: .94rem;
-  }
-
-  footer.site {
-    border-top: var(--border);
-    margin-top: 20px;
-    padding: 22px 0 40px;
-    font-size: .85rem;
-    color: var(--ink-faint);
-  }
-  footer.site p { margin: 0 0 8px; }
-  footer.site a { padding: 2px 4px; border-radius: 2px; }
-  .privacy { color: var(--ink-soft); }
+@media (max-width:760px){
+  .hero .wrap,.cols{grid-template-columns:1fr}
+  .how{grid-template-columns:1fr;gap:34px}
+  .ev{transform:none}
+  .hero{padding-top:28px}
+  #stats{display:none}
+}
 </style>
 </head>
 <body>
 
-<header class="site">
+<header class="top">
   <div class="wrap">
-    <div class="wordmark">pf<span>·</span>debate</div>
+    <a class="mark" href="/">pf-<b>debate</b></a>
+    <span class="status"><span class="dot" id="dot" aria-hidden="true"></span><span id="statusText" role="status">Checking server…</span><span id="stats"></span></span>
     <a class="gh" href="https://github.com/SujayGG/pf-debate-mcp">Source on GitHub</a>
   </div>
 </header>
 
 <main>
-  <section class="hero">
-    <div class="wrap hero-grid">
+  <section class="hero" aria-labelledby="h">
+    <div class="wrap">
       <div>
-        <h1 class="pitch serif">A free debate partner for your AI: real cut cards, never made-up evidence.</h1>
-        <p class="lede">pf-debate is a free, open-source MCP server for Public Forum debate. <strong>Every card it hands you is checked word-for-word against its source</strong> before you ever see it — if a sentence can't be matched verbatim in the original text, it doesn't ship as a card.</p>
-        <p><a class="app-cta" href="/app">Open the free web app</a></p>
-        <p class="age-note">Any age, no account: the web app searches 173,000 cut cards in plain English, finds new sources, and cuts verified cards right in your browser. Prefer your own AI? The connector link below adds the same tools to Claude (18+) or paid ChatGPT.</p>
+        <h1 id="h"><span>Find and cut debate cards in seconds, free.</span></h1>
+        <p class="lede">Type the claim you need. pf-debate searches 173,000 cards other teams already cut, then cuts fresh ones from new sources and checks every word against the original.</p>
+        <a class="cta" href="/app">Open the app</a>
+        <p class="fine">No account, any age. Built for Public Forum; works for LD and Policy too.</p>
+      </div>
+      <figure class="ev" aria-label="Example of a finished card" style="margin:0">
+        <p class="ev-tag">Data centers are driving the growth in electricity demand.</p>
+        <p class="ev-cite"><b>EIA 24</b> "Commercial electricity demand grew fastest in states with rapid computing facility growth"; U.S. Energy Information Administration; 2024-06-28</p>
+        <p class="ev-body"><span class="x">Consumption of electricity in the U.S. commercial sector has recovered from pandemic levels, with annual U.S. sales of electricity to commercial customers in 2023 totaling 14 billion kilowatthours (BkWh), or 1%, more than in 2019. However, </span><span class="u">the </span><mark>growth in commercial demand for electricity is concentrated in</mark><span class="u"> a handful of </span><mark>states experiencing rapid development of</mark><span class="u"> large-scale </span><mark>computing facilities such as data centers.</mark><span class="x"> </span><span class="u">Electricity demand has grown the most in Virginia</span><span class="x">, which added 14 BkWh, and Texas, which added 13 BkWh.</span></p>
+        <span class="badge">&#10003; Verified word-for-word</span>
+      </figure>
+    </div>
+  </section>
 
-        <div class="connect">
-          <p class="connect-label" id="connectLabel">Connector link — paste this into your AI's connector settings</p>
-          <div class="copy-row">
-            <input id="mcpLink" type="text" readonly value="https://debate.peshcompsci.org/mcp" aria-labelledby="connectLabel" onfocus="this.select()">
-            <button id="copyBtn" type="button">Copy connector link</button>
-          </div>
-          <p id="copyMsg" role="status" aria-live="polite"></p>
+  <section aria-labelledby="howH">
+    <div class="wrap">
+      <h2 id="howH">How it works</h2>
+      <p class="sub">One box. Most searches finish in under 25 seconds.</p>
+      <ol class="how">
+        <li>
+          <div class="pic" aria-hidden="true"><div class="pic-in">nuclear war causes extinction<i></i></div></div>
+          <h3>Type your claim</h3>
+          <p>Plain English, the way you'd say it in a speech.</p>
+        </li>
+        <li>
+          <div class="pic" aria-hidden="true"><div class="pic-split">
+            <div class="l">Library<span class="bar"></span><span class="bar s"></span><span class="bar"></span><span class="bar s"></span></div>
+            <div class="n">Fresh sources<span class="bar"></span><span class="bar"></span><span class="bar s"></span></div>
+          </div></div>
+          <h3>Get library and fresh cards</h3>
+          <p>Cards other teams read, ranked by how often, plus new cuts from papers and news.</p>
+        </li>
+        <li>
+          <div class="pic" aria-hidden="true"><div class="pic-card"><b>Data centers drive demand growth.</b><br>the <mark>growth in commercial demand for electricity is concentrated in</mark> a handful of <mark>states</mark><span class="file">.docx</span></div></div>
+          <h3>Keep verified cards and export</h3>
+          <p>Every quote matches the source exactly. Export to Word (Verbatim) or Google Docs.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
 
-          <div class="status-row">
-            <span class="dot" id="statusDot" aria-hidden="true"></span>
-            <span id="statusText" role="status" aria-live="polite">Checking server status…</span>
-            <span id="statsText"></span>
-          </div>
+  <section class="more" aria-labelledby="connH">
+    <div class="wrap cols">
+      <div>
+        <h2 id="connH">Use it inside your own AI</h2>
+        <p>Paste this connector link into your AI app's connector settings to give it the same tools.</p>
+        <div class="copy">
+          <input id="mcp" type="text" readonly value="https://debate.peshcompsci.org/mcp" aria-label="Connector link">
+          <button class="btn" id="copyBtn" type="button">Copy link</button>
         </div>
+        <p class="ok" id="copyMsg" role="status" aria-live="polite"></p>
+        <ul>
+          <li><strong>Claude:</strong> Settings, then Connectors, then Add custom connector. Or install <a href="https://github.com/SujayGG/pf-debate-mcp/releases/latest/download/pf-debate.mcpb">pf-debate.mcpb</a> in Claude Desktop.</li>
+          <li><strong>ChatGPT:</strong> Settings, then Apps &amp; Connectors, then Advanced, then turn on Developer mode and add the link.</li>
+        </ul>
+        <p class="caveat">Claude requires users to be 18+ (free plans allow 1 custom connector). ChatGPT connectors need a paid plan with Developer mode and may not work on teen accounts. The web app has no such limits.</p>
       </div>
-
-      <div class="card-demo" aria-hidden="true">
-        <p class="card-tag">EVIDENCE CARD — verified</p>
-        <p class="card-claim">Data center growth is driving residential electricity bills up nationwide.</p>
-        <p class="card-body">"...utilities in <span class="hl-y">PJM's footprint have raised rates for households</span> as they build new transmission and generation to keep pace with <span class="hl-c">data center demand</span>, a cost that gets <span class="hl-y">spread across every ratepayer</span>, not just the tech firms driving it."</p>
-        <p class="card-cite">Monitoring Analytics, PJM State of the Market Report, 2025</p>
-        <p class="card-verified">✓ Matched word-for-word to source</p>
+      <div>
+        <h2>Knowledge pack for any AI</h2>
+        <p>For Gemini Gems, ChatGPT GPTs or Projects, and Claude Projects. Upload both files as knowledge (for a Gem, paste the instructions and add the guide).</p>
+        <ul>
+          <li><a href="https://github.com/SujayGG/pf-debate-mcp/releases/latest/download/instructions.md">instructions.md</a></li>
+          <li><a href="https://github.com/SujayGG/pf-debate-mcp/releases/latest/download/pf-debate-guide.md">pf-debate-guide.md</a></li>
+        </ul>
+        <p>The knowledge pack can't check cards word-for-word. Check each card against its link, or cut it in the app.</p>
       </div>
-    </div>
-  </section>
-
-  <section class="setup">
-    <div class="wrap">
-      <h2>Connect it in three steps</h2>
-      <p class="section-note">Pick your app. Every option starts with the connector link above.</p>
-
-      <div class="tablist" role="tablist" aria-label="Setup instructions by app">
-        <button role="tab" id="tab-claude" aria-controls="panel-claude" aria-selected="true" tabindex="0">Claude</button>
-        <button role="tab" id="tab-desktop" aria-controls="panel-desktop" aria-selected="false" tabindex="-1">Claude Desktop</button>
-        <button role="tab" id="tab-chatgpt" aria-controls="panel-chatgpt" aria-selected="false" tabindex="-1">ChatGPT</button>
-        <button role="tab" id="tab-gemini" aria-controls="panel-gemini" aria-selected="false" tabindex="-1">Gemini (Gem)</button>
-        <button role="tab" id="tab-any" aria-controls="panel-any" aria-selected="false" tabindex="-1">Any AI (knowledge pack)</button>
-      </div>
-
-      <div id="panel-claude" role="tabpanel" aria-labelledby="tab-claude" tabindex="0">
-        <ol>
-          <li>In claude.ai, the desktop app, or the mobile app, go to <strong>Settings → Connectors</strong>.</li>
-          <li>Choose <strong>Add custom connector</strong>.</li>
-          <li>Paste the connector link from above and save.</li>
-        </ol>
-        <p class="callout">Claude's terms require users to be 18+. Free plans allow 1 custom connector.</p>
-      </div>
-
-      <div id="panel-desktop" role="tabpanel" aria-labelledby="tab-desktop" tabindex="0" hidden>
-        <ol>
-          <li>Download <a class="link" href="https://github.com/SujayGG/pf-debate-mcp/releases/latest/download/pf-debate.mcpb">pf-debate.mcpb</a>.</li>
-          <li>Double-click the file, then click <strong>Install</strong>.</li>
-          <li>Say "Build the quick card library" to start your offline card library.</li>
-        </ol>
-        <p class="callout">Claude's terms require users to be 18+. Free plans allow 1 custom connector.</p>
-      </div>
-
-      <div id="panel-chatgpt" role="tabpanel" aria-labelledby="tab-chatgpt" tabindex="0" hidden>
-        <ol>
-          <li>Go to <strong>Settings → Apps &amp; Connectors → Advanced</strong>.</li>
-          <li>Turn on <strong>Developer mode</strong>.</li>
-          <li>Add the MCP server using the connector link from above.</li>
-        </ol>
-        <p class="callout">Requires a paid plan with Developer Mode; may not be available on teen accounts.</p>
-      </div>
-
-      <div id="panel-gemini" role="tabpanel" aria-labelledby="tab-gemini" tabindex="0" hidden>
-        <ol>
-          <li>In the Gemini app, create a <strong>Gem</strong>.</li>
-          <li>Paste <a class="link" href="https://github.com/SujayGG/pf-debate-mcp/releases/latest/download/instructions.md">instructions.md</a> into the Gem's instructions.</li>
-          <li>Add <a class="link" href="https://github.com/SujayGG/pf-debate-mcp/releases/latest/download/pf-debate-guide.md">pf-debate-guide.md</a> as knowledge.</li>
-        </ol>
-        <p class="callout info">Knowledge only: Gemini can't use the live tools, so check each card against its link.</p>
-      </div>
-
-      <div id="panel-any" role="tabpanel" aria-labelledby="tab-any" tabindex="0" hidden>
-        <p>Works the same way for a ChatGPT GPT or Project, or a Claude Project.</p>
-        <ol>
-          <li>Download <a class="link" href="https://github.com/SujayGG/pf-debate-mcp/releases/latest/download/instructions.md">instructions.md</a> and <a class="link" href="https://github.com/SujayGG/pf-debate-mcp/releases/latest/download/pf-debate-guide.md">pf-debate-guide.md</a>.</li>
-          <li>Upload both as knowledge files to your GPT, Project, or Gem.</li>
-          <li>Ask it debate questions the same way you would with the live connector.</li>
-        </ol>
-        <p class="callout">Cards inside the knowledge pack aren't automatically verified word-for-word — the live server does that checking for you.</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="try">
-    <div class="wrap">
-      <h2>Try asking</h2>
-      <p class="section-note">Once it's connected, talk to it like a teammate on your case doc.</p>
-      <ul class="prompts">
-        <li>Make me a neg case on this month's PF topic centered around a nuclear impact</li>
-        <li>Cut me a card that data centers raise electricity bills</li>
-        <li>Analyze this card and give me CX questions</li>
-        <li>They dropped our link turn. Write my summary.</li>
-      </ul>
     </div>
   </section>
 </main>
 
-<footer class="site">
+<footer>
   <div class="wrap">
-    <p><a href="https://github.com/SujayGG/pf-debate-mcp">GitHub</a> · MIT license · Card library from the OpenCaselist dataset (MIT)</p>
-    <p class="privacy">The free server doesn't store your cards or log your questions. Exports are temporary download links.</p>
+    <p><a href="https://github.com/SujayGG/pf-debate-mcp">GitHub</a>, MIT license. Card library from the OpenCaselist dataset (MIT).</p>
+    <p>The free server doesn't store your cards or log your questions. Exports are temporary download links.</p>
   </div>
 </footer>
 
 <script>
 (function () {
-  "use strict";
+"use strict";
+var API_BASE = ""; // same-origin; override only for local testing
+function $(id) { return document.getElementById(id); }
 
-  /* ---- copy connector link ---- */
-  var mcpUrl = "https://debate.peshcompsci.org/mcp";
-  var copyBtn = document.getElementById("copyBtn");
-  var copyMsg = document.getElementById("copyMsg");
-  var mcpInput = document.getElementById("mcpLink");
-
-  function showCopied() {
-    copyBtn.classList.add("copied");
-    copyBtn.textContent = "Copied!";
-    copyMsg.textContent = "Connector link copied to clipboard.";
-    setTimeout(function () {
-      copyBtn.classList.remove("copied");
-      copyBtn.textContent = "Copy connector link";
-      copyMsg.textContent = "";
-    }, 2500);
+$("copyBtn").addEventListener("click", function () {
+  var input = $("mcp"), msg = $("copyMsg");
+  function done() { msg.textContent = "Copied. Paste it into your AI app's connector settings."; }
+  function manual() {
+    input.focus(); input.select();
+    try { if (document.execCommand("copy")) return done(); } catch (e) { /* fall through */ }
+    msg.textContent = "The link is selected: press Ctrl+C (or Cmd+C) to copy.";
   }
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(input.value).then(done, manual);
+  else manual();
+});
 
-  copyBtn.addEventListener("click", function () {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(mcpUrl).then(showCopied, function () {
-        mcpInput.select();
-        try { document.execCommand("copy"); showCopied(); } catch (e) {
-          copyMsg.textContent = "Couldn't copy automatically — the link is selected, press Ctrl/Cmd+C.";
-        }
-      });
-    } else {
-      mcpInput.select();
-      try { document.execCommand("copy"); showCopied(); } catch (e) {
-        copyMsg.textContent = "Couldn't copy automatically — the link is selected, press Ctrl/Cmd+C.";
-      }
-    }
-  });
+var dot = $("dot"), text = $("statusText"), tries = 0;
+function set(k, m) { dot.className = "dot " + k; text.textContent = m; }
+function waking() { if (tries < 6) { set("waking", "Waking up, about 1 minute…"); setTimeout(check, 15000); } else set("down", "Down: use the knowledge pack below meanwhile"); }
+function check() {
+  tries++;
+  var ctl = window.AbortController ? new AbortController() : null, t = ctl && setTimeout(function () { ctl.abort(); }, 8000);
+  fetch(API_BASE + "/health", ctl ? { signal: ctl.signal } : {}).then(function (r) {
+    if (r.status === 200) set("online", "Online"); else if (r.status === 503) waking(); else set("down", "Down: use the knowledge pack below meanwhile");
+  }).catch(waking).finally(function () { if (t) clearTimeout(t); });
+}
+check();
 
-  /* ---- health status ---- */
-  var dot = document.getElementById("statusDot");
-  var text = document.getElementById("statusText");
-  var statsText = document.getElementById("statsText");
-  var MAX_RETRIES = 6;
-  var RETRY_MS = 15000;
-  var attempts = 0;
-
-  function setStatus(kind, msg) {
-    dot.className = "dot " + kind;
-    text.textContent = msg;
-  }
-
-  function fetchWithTimeout(url, ms) {
-    var controller = ("AbortController" in window) ? new AbortController() : null;
-    var opts = controller ? { signal: controller.signal } : {};
-    var timer = controller ? setTimeout(function () { controller.abort(); }, ms) : null;
-    return fetch(url, opts).finally(function () { if (timer) clearTimeout(timer); });
-  }
-
-  function checkHealth() {
-    attempts++;
-    fetchWithTimeout("/health", 8000).then(function (res) {
-      if (res.status === 200) {
-        setStatus("online", "Online");
-      } else if (res.status === 503) {
-        handleWaking();
-      } else {
-        setStatus("down", "Down: use the knowledge pack below meanwhile");
-      }
-    }).catch(function () {
-      handleWaking();
-    });
-  }
-
-  function handleWaking() {
-    if (attempts < MAX_RETRIES) {
-      setStatus("waking", "Waking up, about 1 minute…");
-      setTimeout(checkHealth, RETRY_MS);
-    } else {
-      setStatus("down", "Down: use the knowledge pack below meanwhile");
-    }
-  }
-
-  checkHealth();
-
-  fetch("/stats").then(function (res) {
-    if (!res.ok) return null;
-    return res.json();
-  }).then(function (data) {
-    if (data && typeof data.verified_cards_cut_since_start !== "undefined") {
-      statsText.innerHTML = ' <span class="stat-sep">·</span> ' + data.verified_cards_cut_since_start + " verified cards cut";
-    }
-  }).catch(function () { /* fail silently */ });
-
-  /* ---- accessible tabs ---- */
-  var tablist = document.querySelector('[role="tablist"]');
-  var tabs = Array.prototype.slice.call(tablist.querySelectorAll('[role="tab"]'));
-
-  function selectTab(tab) {
-    tabs.forEach(function (t) {
-      var selected = t === tab;
-      t.setAttribute("aria-selected", selected ? "true" : "false");
-      t.tabIndex = selected ? 0 : -1;
-      var panel = document.getElementById(t.getAttribute("aria-controls"));
-      if (panel) panel.hidden = !selected;
-    });
-    tab.focus();
-  }
-
-  tabs.forEach(function (tab, i) {
-    tab.addEventListener("click", function () { selectTab(tab); });
-    tab.addEventListener("keydown", function (e) {
-      var newIndex = null;
-      if (e.key === "ArrowRight") newIndex = (i + 1) % tabs.length;
-      else if (e.key === "ArrowLeft") newIndex = (i - 1 + tabs.length) % tabs.length;
-      else if (e.key === "Home") newIndex = 0;
-      else if (e.key === "End") newIndex = tabs.length - 1;
-      if (newIndex !== null) {
-        e.preventDefault();
-        selectTab(tabs[newIndex]);
-      }
-    });
-  });
+fetch(API_BASE + "/stats").then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+  if (d && d.verified_cards_cut_since_start != null) $("stats").textContent = "(" + d.verified_cards_cut_since_start + " verified cards cut)";
+}).catch(function () { /* optional */ });
 })();
 </script>
 </body>

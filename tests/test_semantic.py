@@ -44,3 +44,16 @@ def test_suggest_picks_the_supporting_passage_and_passes_the_gate():
     assert s["paragraph"] == 1
     card = cut(SOURCE, s["start_quote"], s["end_quote"], s["underline"], s["highlight"], s["paragraph"])
     assert "data centers" in card["body"] and "school board" not in card["body"]
+
+
+def test_auto_cut_returns_verified_new_cards(indexed, web, monkeypatch):
+    from pf_debate_mcp import discovery, server
+
+    monkeypatch.setattr(discovery, "find_sources", lambda q, kinds, limit: {"results": [
+        {"kind": "news", "title": "Data centers and the grid", "url": f"{web}/article", "date": "2025-03-01",
+         "snippet": "data centers electricity"},
+        {"kind": "news", "title": "Paywalled", "url": f"{web}/short", "date": "2025-03-01", "snippet": "x"}],
+        "skipped": []})
+    r = server.auto_cut_cards("data centers consume a growing share of U.S. electricity", 2)
+    assert r["new"] and r["new"][0]["card"]["id"]  # cut and verified from the article
+    assert any("short" in s.get("skipped", "") for s in r["skipped"] if isinstance(s, dict))  # paywall skipped

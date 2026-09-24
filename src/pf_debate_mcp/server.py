@@ -165,6 +165,65 @@ def suggest_cut(source_id: str, claim: str) -> str:
     return json.dumps(s, ensure_ascii=False, indent=1)
 
 
+def auto_cut_cards(claim: str, max_new: int = 4) -> dict:
+    """One-shot evidence: matching library cards plus fresh web/paper sources fetched, cut and verified.
+
+      claim ──▶ library hybrid search (top 5)
+            └─▶ find_sources ──▶ fetch each (parallel) ──▶ suggest_cut ──▶ make_card (verbatim gate)
+    """
+    from concurrent.futures import ThreadPoolExecutor, wait
+
+    from .discovery import find_sources as _find
+
+    library_cards = semantic.hybrid_search(claim, 5) if library.ready() else []
+    found = _find(claim, ("papers", "news"), 8)
+    # Google News RSS links are JS redirect pages (no text): skip them. Prefer recent, on-topic sources.
+    pool = [r for r in found["results"] if r.get("url") and "news.google.com" not in r["url"]
+            and (r.get("date") or "9999")[:4] >= "2018"]
+    if pool:
+        sims = semantic.embed([f"{r.get('title', '')}. {r.get('snippet', '')}" for r in pool]) @ semantic.embed([claim])[0]
+        pool = [r for _, r in sorted(zip(sims, pool), key=lambda t: -t[0])]
+    candidates = pool[: max_new * 2]
+
+    def try_cut(r):
+        try:
+            sid, src = resolve_source(r["url"])
+            s = semantic.suggest(src["text"], claim)
+            card, warnings = make_card(
+                sid, claim, src.get("author") or ", ".join(r.get("authors") or []) or r.get("source") or "",
+                src.get("date") or r.get("date") or "", src.get("title") or r.get("title") or "",
+                src.get("publisher") or r.get("source") or "", src.get("url") or r["url"],
+                r.get("quals") or "", s["start_quote"], s["end_quote"], s["highlight"], s["underline"],
+                s["paragraph"])
+            return {"card": card, "warnings": warnings, "score": s["score"], "url": r["url"]}
+        except (ToolError, CutError) as e:
+            return {"skipped": r["url"], "reason": str(e)[:120]}
+
+    ex = ThreadPoolExecutor(8)
+    futures = [ex.submit(try_cut, r) for r in candidates]
+    done, late = wait(futures, timeout=25)  # a student waits at most ~25 s; slow sites are skipped
+    ex.shutdown(wait=False, cancel_futures=True)
+    results = [f.result() for f in done] + [{"skipped": "(slow site)", "reason": "timed out"} for _ in late]
+    new = sorted((x for x in results if "card" in x and x["score"] >= 0.45), key=lambda x: -x["score"])[:max_new]
+    return {"library": library_cards, "new": new,
+            "skipped": [x for x in results if "skipped" in x] + found["skipped"]}
+
+
+@mcp.tool()
+@observe
+def auto_cut(claim: str, max_new: int = 4) -> str:
+    """Find evidence for a claim in one step: the best already-cut library cards PLUS new cards auto-cut
+    from fresh papers/news (fetched, passage picked, highlighted, verified verbatim). Tags default to the
+    claim: rewrite them to what each highlight proves, and check quals before using a card."""
+    r = auto_cut_cards(claim, max(1, min(max_new, 6)))
+    out = ["LIBRARY (already cut):"] + [f"{c['id']} {c['tag']} -- {c['cite']}" for c in r["library"]]
+    out += ["", "NEW CUTS:"] + [render(x["card"]) + ("\nWARNINGS: " + "; ".join(x["warnings"]) if x["warnings"] else "")
+                                for x in r["new"]]
+    if not r["new"]:
+        out.append("(no fetchable sources: many sites block bots or are paywalled; try find_sources + fetch_source)")
+    return "\n\n".join(out)
+
+
 @mcp.tool()
 @observe
 def find_sources(query: str, kinds: list[str] | None = None, limit: int = 10) -> dict:
@@ -204,7 +263,10 @@ def render_doc(title: str, items: list[dict], filename: str | None, format: str)
     resolved = []
     for it in items:
         if "card" in it:
-            resolved.append({"card": _card(it["card"])})
+            card = _card(it["card"])
+            if isinstance(it.get("tag"), str) and it["tag"].strip():  # an edited tag replaces the card's own
+                card = {**card, "tag": it["tag"].strip()}
+            resolved.append({"card": card})
         elif len(it) == 1 and next(iter(it)) in ("pocket", "hat", "block", "tag", "text"):
             resolved.append(it)
         else:
@@ -222,7 +284,8 @@ def render_doc(title: str, items: list[dict], filename: str | None, format: str)
 def export_doc(title: str, items: list[dict], filename: str | None = None, format: str = "docx") -> str:
     """Write a speech doc / case / block file. items in order, each one of:
     {"pocket": "..."} {"hat": "..."} {"block": "..."} (Verbatim headings: Pocket > Hat > Block),
-    {"tag": "..."} (analytic tag, no card), {"text": "..."} (speech prose), {"card": "c12" | "lib:345"}.
+    {"tag": "..."} (analytic tag, no card), {"text": "..."} (speech prose), {"card": "c12" | "lib:345"}
+    (optionally {"card": id, "tag": "new tag"} to retag a card in the export).
     format "docx": Verbatim-compatible Word file. format "gdocs": an .html file for Google Docs users (open it,
     select all, copy, paste into a Google Doc; or upload it to Google Drive and open with Google Docs).
     Returns the file path."""

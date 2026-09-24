@@ -20,7 +20,7 @@ OPENALEX = "https://api.openalex.org/works"
 GDELT = "https://api.gdeltproject.org/api/v2/doc/doc"
 GNEWS = "https://news.google.com/rss/search"
 MAILTO = "pf-debate@users.noreply.github.com"
-TIMEOUT = 8.0  # seconds, per source
+TIMEOUT = 15.0  # GDELT is often slow; it runs in parallel with the others  # seconds, per source
 _HEADERS = {"User-Agent": "pf-debate-mcp (citable evidence search)"}
 
 _cache = _ByteLRU(20_000_000, ttl=3600)  # (query, kinds, limit) -> {"results", "skipped"}, 1h
