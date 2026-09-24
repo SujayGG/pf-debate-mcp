@@ -47,7 +47,7 @@ def search_cards(query: str, scope: str = "library", year_from: int | None = Non
                  event: str | None = None, sort: str = "relevance", limit: int = 10) -> list[dict] | str:
     """Search already-cut debate cards by keywords.
 
-    scope: "library" = OpenCaselist corpus (PF, LD, Policy, camp OpenEv files; 2013-2024);
+    scope: "library" = OpenCaselist corpus (PF, LD, Policy, camp OpenEv files; 2014-2022);
            "mine" = cards the user cut or imported.
     sort: "relevance" or "popular" (most-read by teams first; a strong quality signal for impact cards).
     side: "A"/"N" (aff/neg). event: pf | ld | cx | openev. Use plain keywords, e.g. "nuclear war escalation
@@ -68,6 +68,8 @@ def get_card(card_id: str) -> str:
     and _text_ is underlined. Read the unhighlighted text too: it shows context and possible indicts."""
     card = _card(card_id)
     extra = f"\n(read by {card['times_read']} teams; {card['origin']})" if card.get("times_read") else ""
+    if not any(h for _, _, h in card["runs"]):
+        extra += "\n(unmarked card: the team read it in full; recut it with cut_card to highlight)"
     return render(card) + extra
 
 
@@ -210,8 +212,8 @@ def library_status() -> dict:
 @mcp.tool()
 def build_library(mode: str = "quick") -> str:
     """Download and index the card library in the background (one time; resumable).
-    mode "quick": PF cards only (~25k cards, minutes). mode "full": PF + camp OpenEv files + widely read
-    LD/Policy cards (~500k cards, a few hours, 1-2 GB). Ask the user before starting "full"."""
+    mode "quick": PF cards only (~6-8k cards, minutes). mode "full": PF + camp OpenEv files + widely read
+    LD/Policy cards (~170k cards incl. most big-impact cards, a few hours, ~0.8 GB). Ask before starting "full"."""
     if mode not in library.PRESETS:
         return f"ERROR: mode must be one of {list(library.PRESETS)}"
     return library.start_background_build(mode)

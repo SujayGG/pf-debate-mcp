@@ -29,7 +29,7 @@ All downloads are on the **[latest release page](https://github.com/SujayGG/pf-d
 2. Download **[pf-debate.mcpb](https://github.com/SujayGG/pf-debate-mcp/releases/latest/download/pf-debate.mcpb)**.
 3. Double-click the file (or drag it into Claude Desktop → Settings → Extensions), then click **Install**.
    - The Tabroom email and password fields are optional. They are only for OpenCaselist scouting, and Claude Desktop stores them securely.
-4. In a new chat, say: **"Build the quick card library."** This takes a few minutes and runs in the background. Later you can say "build the full card library" for about 500k cards (a few hours, 1–2 GB; it resumes if interrupted).
+4. In a new chat, say: **"Build the quick card library."** This takes a few minutes, runs in the background, and gets about 6k PF cards. Then say **"build the full card library"** for about 170k cards, including the most-read Policy/LD impact cards (nuke war, econ, heg). That takes a few hours and about 0.8 GB, and it resumes if interrupted.
 5. Start prepping. Speech docs are saved to `Documents/pf-debate/`.
 
 ### Claude.ai (web)
@@ -57,7 +57,7 @@ Download **[instructions.md](https://github.com/SujayGG/pf-debate-mcp/releases/l
 | Tool | What it does |
 |---|---|
 | `pf_guide` | PF knowledge: glossary, format, tactics, impacts, evidence ethics, how to build cases/blocks/scouts |
-| `search_cards` / `get_card` | Local library of cut cards from [OpenCaselist](https://huggingface.co/datasets/Yusuf5/OpenCaselist) (PF, LD, Policy, camp files; 2013–2024), with "popular" ranking by how many teams read a card |
+| `search_cards` / `get_card` | Local library of cut cards from [OpenCaselist](https://huggingface.co/datasets/Yusuf5/OpenCaselist) (PF, LD, Policy, camp files; 2014–2022), with "popular" ranking by how many teams read a card |
 | `fetch_source` | Any article or PDF, turned into clean paragraphs plus citation metadata |
 | `cut_card` | Cuts a card; the text must match the source verbatim or it's rejected. Full NSDA citations. |
 | `export_doc` | A Verbatim-compatible .docx (Pocket/Hat/Block/Tag, underline, highlight) |

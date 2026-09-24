@@ -44,7 +44,8 @@ from read_parquet(?)
 where (list_contains(?, event) or (event is null and ?))
   and (coalesce(event, '') not in ('cx', 'ld') or try_cast(duplicateCount as int) >= ?)
   and (year is null or try_cast(year as int) >= ?)
-  and markup is not null and length(spoken) > 0          -- unhighlighted rows are mostly paraphrase dumps
+  and markup is not null
+  and (length(spoken) > 0 or event = 'pf')  -- unmarked LD/Policy rows are junk; unmarked PF cards are read in full
   and length(tag) between 5 and 300 and length(cite) < 200  -- longer ones are mis-parsed docs
 """
 
