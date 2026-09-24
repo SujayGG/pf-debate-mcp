@@ -73,6 +73,24 @@ def test_runs_from_ranges():
     assert runs == [("ab", True, False), ("cd", True, True), ("ef", False, False)]
 
 
+def test_ambiguous_start_rejected_with_paragraphs():
+    text = "Intro: data centers use 4 percent. Critics disagree.\nLater: data centers use 4 percent. Growth is certain."
+    with pytest.raises(CutError, match=r"appears 2 times \(paragraphs \[0, 1\]\)"):
+        cut(text, "data centers use", "certain.", [], ["4 percent"])
+    card = cut(text, "data centers use", "certain.", [], ["Growth is certain"], paragraph=1)
+    assert card["body"].startswith("data centers use 4 percent. Growth")
+    with pytest.raises(CutError, match=r"not in paragraph \[3\]"):
+        cut(text, "data centers use", "certain.", [], ["4 percent"], paragraph=3)
+
+
+def test_render_read_keeps_only_marked_text():
+    from pf_debate_mcp.cards import render_read
+    card = {"id": "c1", "tag": "T", "cite_short": "S 25", "cite_rest": "[x]",
+            "runs": [("skip ", False, False), ("read this", True, True), (" filler ", False, False),
+                     ("context", True, False)]}
+    assert render_read(card).endswith("==read this== ... _context_")
+
+
 def test_short_cite_names():
     from pf_debate_mcp.cards import format_cite
     base = {"date": "November 15, 2023", "quals": "q", "url": "u"}

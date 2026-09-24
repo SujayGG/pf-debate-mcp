@@ -4,6 +4,7 @@ Verbatim (the standard debate Word template) maps Pocket/Hat/Block/Tag onto Word
 Heading 1-4, so plain Heading styles open correctly in Verbatim and in plain Word.
 """
 
+import html
 import io
 from pathlib import Path
 
@@ -62,6 +63,38 @@ def export(title: str, items: list[dict], path: Path) -> Path:
             doc.add_heading(text, _HEADINGS[kind][0])
     path.parent.mkdir(parents=True, exist_ok=True)
     doc.save(path)
+    return path
+
+
+def export_html(title: str, items: list[dict], path: Path) -> Path:
+    """Same structure as export() as HTML, which Google Docs keeps intact on paste or Drive upload
+    (headings, bold cite, underline, highlight, small unread text)."""
+    esc = html.escape
+    out = [f"<!doctype html><meta charset='utf-8'><title>{esc(title)}</title>"
+           "<body style='font-family:Calibri,Arial,sans-serif;font-size:11pt'>"]
+    for item in items:
+        if "card" in item:
+            c = item["card"]
+            out.append(f"<h4>{esc(c['tag'])}</h4><p><b style='font-size:13pt'>{esc(c['cite_short'])}</b> "
+                       f"<span style='font-size:8pt'>{esc(c.get('cite_rest') or '')}</span></p><p>")
+            for text, u, h in c["runs"]:
+                t = esc(text).replace("\n", "</p><p>")
+                if h:
+                    t = f"<u style='background-color:#00ffff'>{t}</u>"
+                elif u:
+                    t = f"<u>{t}</u>"
+                else:
+                    t = f"<span style='font-size:8pt'>{t}</span>"
+                out.append(t)
+            out.append("</p>")
+        elif "text" in item:
+            out.append(f"<p>{esc(item['text'])}</p>")
+        else:
+            (kind, text), = item.items()
+            out.append(f"<h{_HEADINGS[kind][0]}>{esc(text)}</h{_HEADINGS[kind][0]}>")
+    out.append("</body>")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("".join(out), encoding="utf-8")
     return path
 
 

@@ -6,6 +6,7 @@ that differs from the source is rejected, so a card can never contain invented t
 """
 
 import re
+from bisect import bisect_right
 from datetime import date
 from html.parser import HTMLParser
 
@@ -61,6 +62,38 @@ def _find(text: str, quote: str, what: str, frm: int = 0) -> tuple[int, int]:
     return ti[pos], ti[pos + len(qn) - 1] + 1
 
 
+def paragraph_spans(text: str) -> list[tuple[int, str]]:
+    """(start offset, text) of each non-empty line: the numbering fetch_source shows as [N]."""
+    return [(m.start(), m.group().strip()) for m in re.finditer(r"[^\n]+", text) if m.group().strip()]
+
+
+def _start(text: str, quote: str, paragraph: int | None) -> int:
+    """Original offset where start_quote begins. Ambiguous quotes need a paragraph number, so a card
+    is never silently cut from the wrong place (for example, the author's summary of critics)."""
+    tn, ti = _norm(text)
+    qn = _norm(quote.strip())[0]
+    if not qn:
+        raise CutError("start_quote is empty.")
+    hits, pos = [], tn.find(qn)
+    while pos >= 0:
+        hits.append(ti[pos])
+        pos = tn.find(qn, pos + 1)
+    if not hits:
+        raise CutError(f"start_quote not found verbatim: '{quote[:120]}'.{_hint(tn, qn)}")
+    starts = [o for o, _ in paragraph_spans(text)]
+    para_of = {h: bisect_right(starts, h) - 1 for h in hits}
+    if paragraph is not None:
+        chosen = [h for h in hits if para_of[h] == paragraph]
+        if not chosen:
+            raise CutError(f"start_quote is not in paragraph [{paragraph}]; it appears in "
+                           f"{sorted(set(para_of.values()))}.")
+        return chosen[0]
+    if len(hits) > 1:
+        raise CutError(f"start_quote appears {len(hits)} times (paragraphs {sorted(set(para_of.values()))}). "
+                       "Pass paragraph=<N> for the one you mean, or use a longer start_quote.")
+    return hits[0]
+
+
 def _merge(ranges: list[tuple[int, int]]) -> list[tuple[int, int]]:
     out: list[list[int]] = []
     for s, e in sorted(ranges):
@@ -83,11 +116,12 @@ def _marks(body: str, quotes: list[str], what: str) -> list[tuple[int, int]]:
     return ranges
 
 
-def cut(text: str, start_quote: str, end_quote: str, underline: list[str], highlight: list[str]) -> dict:
-    """Cut a card from source text. Raises CutError when anything is not verbatim."""
+def cut(text: str, start_quote: str, end_quote: str, underline: list[str], highlight: list[str],
+        paragraph: int | None = None) -> dict:
+    """Cut a card from source text. Raises CutError when anything is not verbatim or is ambiguous."""
     if not highlight:
         raise CutError("A card needs at least one highlight (the words read aloud).")
-    s, _ = _find(text, start_quote, "start_quote")
+    s = _start(text, start_quote, paragraph)
     _, e = _find(text, end_quote, "end_quote", frm=len(_norm(text[:s])[0]))
     if e <= s:
         raise CutError("end_quote occurs before start_quote in the source.")
@@ -144,6 +178,22 @@ def render(card: dict) -> str:
             segs.append([kind, text])
     body = [f"{k}{t}{k}" for k, t in segs]
     return f"[{card['id']}] {card['tag']}\n{card['cite_short']} {card['cite_rest']}\n{''.join(body)}"
+
+
+def render_read(card: dict) -> str:
+    """Compact view: only underlined/highlighted text, with ' ... ' where unread text was skipped."""
+    parts: list[str] = []
+    for text, u, h in card["runs"]:
+        if h or u:
+            mark = "==" if h else "_"
+            if parts and parts[-1].endswith(mark) and not parts[-1].endswith(" ... "):
+                parts[-1] = parts[-1][: -len(mark)] + text + mark  # merge touching runs of the same kind
+            else:
+                parts.append(f"{mark}{text}{mark}")
+        elif text.strip() and parts and parts[-1] != " ... ":
+            parts.append(" ... ")
+    body = "".join(parts).strip(" .") if parts else "(unmarked card: use view='full')"
+    return f"[{card['id']}] {card['tag']}\n{card['cite_short']} {card['cite_rest']}\n{body}"
 
 
 def format_cite(c: dict) -> tuple[str, str, list[str]]:

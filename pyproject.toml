@@ -1,6 +1,6 @@
 [project]
 name = "pf-debate-mcp"
-version = "0.2.1"
+version = "0.3.0"
 description = "Public Forum debate partner for any MCP agent: card library, verbatim card cutting, OpenCaselist, Verbatim .docx export"
 readme = "README.md"
 license = "MIT"

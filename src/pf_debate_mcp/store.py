@@ -4,7 +4,7 @@ import json
 import os
 import re
 import sqlite3
-from functools import cache
+import threading
 from pathlib import Path
 
 from .cards import Run, runs_from_ranges
@@ -22,12 +22,17 @@ create table if not exists cards(
 """
 
 
-@cache
+_local = threading.local()  # one connection per thread: MCP tools run in a thread pool
+
+
 def db() -> sqlite3.Connection:
-    HOME.mkdir(parents=True, exist_ok=True)
-    con = sqlite3.connect(HOME / "pf.db", check_same_thread=False)
-    con.row_factory = sqlite3.Row
-    con.executescript(_SCHEMA)
+    con = getattr(_local, "con", None)
+    if con is None:
+        HOME.mkdir(parents=True, exist_ok=True)
+        con = _local.con = sqlite3.connect(HOME / "pf.db", timeout=30)
+        con.row_factory = sqlite3.Row
+        con.execute("pragma journal_mode=wal")
+        con.executescript(_SCHEMA)
     return con
 
 

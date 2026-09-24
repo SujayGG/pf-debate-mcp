@@ -144,15 +144,15 @@ Paid APIs or search keys. Our own LLM calls (generation always runs on the user'
 ## Implementation Tasks
 Synthesized from this review's findings. Check off each item as it ships.
 
-- [ ] **T1 (P1, human: ~4h / CC: ~10min)**: library, store: fix search latency and concurrency
+- [x] **T1 (P1, human: ~4h / CC: ~10min)**: library, store: fix search latency and concurrency
   - Surfaced by: 7A (status() is called on every search, 843 ms) and 7B (a shared SQLite connection).
   - Files: `library.py`, `store.py`, `server.py`
   - Verify: `pytest -k "search_speed or concurrency"`; search in under 50 ms.
-- [ ] **T2 (P1, human: ~4h / CC: ~10min)**: sources, caselist: named errors
+- [x] **T2 (P1, human: ~4h / CC: ~10min)**: sources, caselist: named errors
   - Surfaced by: 2A.
   - Files: `sources.py`, `caselist.py`
   - Verify: unit tests with a corrupt PDF, bad encoding and a dropped connection.
-- [ ] **T3 (P1, human: ~3h / CC: ~10min)**: cards: reject an ambiguous start_quote, add a paragraph hint
+- [x] **T3 (P1, human: ~3h / CC: ~10min)**: cards: reject an ambiguous start_quote, add a paragraph hint
   - Surfaced by: 4A.
   - Files: `cards.py`, `server.py`
   - Verify: `pytest tests/test_cards.py`
@@ -172,7 +172,7 @@ Synthesized from this review's findings. Check off each item as it ships.
   - Surfaced by: 3B and 3C.
   - Files: `server.py`, `docx_io.py`
   - Verify: zip-bomb fixture test; the `<source_text>` wrapper is present.
-- [ ] **T8 (P1, human: ~1d / CC: ~30min)**: tests + CI
+- [x] **T8 (P1, human: ~1d / CC: ~30min)**: tests + CI
   - Surfaced by: 6A.
   - Files: `tests/*`, `.github/workflows/ci.yml`
   - Verify: CI green on push.
@@ -188,7 +188,7 @@ Synthesized from this review's findings. Check off each item as it ships.
   - Surfaced by: 11A.
   - Files: `deploy/worker/landing.html`
   - Verify: works on mobile; keyboard and screen-reader pass.
-- [ ] **T12 (P2, human: ~4h / CC: ~15min)**: lean get_card view and Google-Docs export
+- [x] **T12 (P2, human: ~4h / CC: ~15min)**: lean get_card view and Google-Docs export
   - Surfaced by: roadmap item 3 and T6.
   - Files: `server.py`, `cards.py`, `docx_io.py`
   - Verify: get_card is about 4× smaller; the gdocs paste keeps its formatting.

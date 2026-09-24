@@ -20,8 +20,11 @@ class CaselistError(RuntimeError):
 
 
 def login(username: str, password: str) -> None:
-    r = httpx.post(f"{API}/login", json={"username": username, "password": password, "remember": True},
-                   timeout=30)
+    try:
+        r = httpx.post(f"{API}/login", json={"username": username, "password": password, "remember": True},
+                       timeout=30)
+    except httpx.TransportError as e:
+        raise CaselistError(f"Network problem reaching OpenCaselist ({type(e).__name__}).") from None
     if r.status_code != 200 or "caselist_token" not in r.cookies:
         raise CaselistError(f"Login failed ({r.status_code}): {r.text[:200]}")
     HOME.mkdir(parents=True, exist_ok=True)
@@ -44,7 +47,10 @@ def _token() -> str:
 
 
 def _get(path: str, **params) -> httpx.Response:
-    r = httpx.get(f"{API}{path}", params=params, cookies={"caselist_token": _token()}, timeout=60)
+    try:
+        r = httpx.get(f"{API}{path}", params=params, cookies={"caselist_token": _token()}, timeout=60)
+    except httpx.TransportError as e:
+        raise CaselistError(f"Network problem reaching OpenCaselist ({type(e).__name__}). Try again.") from None
     if r.status_code == 401:
         TOKEN.unlink(missing_ok=True)
         raise CaselistError("OpenCaselist session expired. Run: uvx pf-debate-mcp login")

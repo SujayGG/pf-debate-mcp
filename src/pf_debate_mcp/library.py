@@ -52,9 +52,20 @@ where (list_contains(?, event) or (event is null and ?))
 
 def _connect() -> sqlite3.Connection:
     HOME.mkdir(parents=True, exist_ok=True)
-    con = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=60)  # a build may be writing
+    con = sqlite3.connect(DB_PATH, timeout=60)  # a build may be writing
     con.row_factory = sqlite3.Row
+    con.execute("pragma journal_mode=wal")  # readers never block the background build (and vice versa)
     con.executescript(_SCHEMA)
+    return con
+
+
+_local = threading.local()  # one reader connection per thread: MCP tools run in a thread pool
+
+
+def _conn() -> sqlite3.Connection | None:
+    con = getattr(_local, "con", None)
+    if con is None and DB_PATH.exists():
+        con = _local.con = _connect()
     return con
 
 
@@ -141,10 +152,16 @@ def start_background_build(mode: str) -> str:
 
 
 def _ready() -> sqlite3.Connection | None:
-    if not DB_PATH.exists():
-        return None
-    con = _connect()
-    return con if con.execute("select 1 from cards limit 1").fetchone() else None
+    con = _conn()
+    return con if con and con.execute("select 1 from cards limit 1").fetchone() else None
+
+
+def ready() -> bool:
+    """Cheap (about 1 ms) check that the library has cards. Search must use this, never status()."""
+    return _ready() is not None
+
+
+_status_cache: dict = {"at": 0.0, "value": None}
 
 
 def status() -> dict:
@@ -153,12 +170,14 @@ def status() -> dict:
     if not con:
         return {"built": False, "path": str(DB_PATH), **build_info,
                 "fix": "Call the build_library tool (or run `pf-debate-mcp build-library` in a terminal)."}
-    by_event = dict(con.execute("select event, count(*) from cards group by event").fetchall())
-    lo, hi = con.execute("select min(year), max(year) from cards").fetchone()
-    shards = con.execute("select count(*) from shards").fetchone()[0]
-    return {"built": True, "cards": sum(by_event.values()), "by_event": by_event, "years": [lo, hi],
-            "shards_done": shards, "path": str(DB_PATH), "size_mb": round(DB_PATH.stat().st_size / 1e6),
-            **build_info}
+    if _build["running"] or time.time() - _status_cache["at"] > 60:  # full counts take ~1 s on 173k cards
+        by_event = dict(con.execute("select event, count(*) from cards group by event").fetchall())
+        lo, hi = con.execute("select min(year), max(year) from cards").fetchone()
+        shards = con.execute("select count(*) from shards").fetchone()[0]
+        _status_cache.update(at=time.time(), value={
+            "built": True, "cards": sum(by_event.values()), "by_event": by_event, "years": [lo, hi],
+            "shards_done": shards, "path": str(DB_PATH), "size_mb": round(DB_PATH.stat().st_size / 1e6)})
+    return {**_status_cache["value"], **build_info}
 
 
 def _match(query: str, op: str) -> str:
@@ -180,12 +199,13 @@ def search(query: str, limit: int = 10, year_from: int | None = None, side: str 
     if event:
         filters += " and c.event = ?"
         args.append(event.lower())
-    order = "c.reads desc, score" if sort == "popular" else "score"
-    sql = f"""select * from (
-        select c.id, c.tag, c.cite, c.year, c.event, c.side, c.reads, c.heads, c.spoken,
-               bm25(fts, 8.0, 2.0, 3.0, 1.0) score
-        from fts join cards c on c.id = fts.rowid where fts match ? {filters}
-        order by score limit 300) c order by {order} limit ?"""
+    order = "c.reads desc, h.score" if sort == "popular" else "h.score"
+    # Rank inside FTS first, then join the top hits (joining before ranking doubled query time).
+    sql = f"""with hits as (select rowid id, bm25(fts, 8.0, 2.0, 3.0, 1.0) score from fts
+                            where fts match ? order by score limit 1000)
+        select c.id, c.tag, c.cite, c.year, c.event, c.side, c.reads, c.heads, c.spoken, h.score
+        from hits h join cards c on c.id = h.id where 1=1 {filters}
+        order by {order} limit ?"""
     for op in ("AND", "OR"):  # all words first; fall back to any word
         rows = con.execute(sql, [_match(query, op), *args, limit]).fetchall()
         if rows:

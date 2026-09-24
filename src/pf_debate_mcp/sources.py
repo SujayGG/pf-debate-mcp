@@ -6,6 +6,9 @@ import re
 import httpx
 import trafilatura
 from pypdf import PdfReader
+from pypdf.errors import PyPdfError
+
+from .cards import paragraph_spans
 
 _UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
        "(KHTML, like Gecko) Chrome/140.0 Safari/537.36")
@@ -45,7 +48,11 @@ def fetch(url: str) -> tuple[dict, str]:
     if r.status_code >= 400:
         raise FetchError(f"{url} returned HTTP {r.status_code} (blocked or paywalled). Try another source.")
     is_pdf = "pdf" in r.headers.get("content-type", "") or r.content[:5] == b"%PDF-"
-    meta, text = _pdf(r.content) if is_pdf else _html(r.text, str(r.url))
+    try:
+        meta, text = _pdf(r.content) if is_pdf else _html(r.text, str(r.url))
+    except (PyPdfError, ValueError, UnicodeDecodeError) as e:  # corrupt PDF / undecodable page
+        kind = "PDF" if is_pdf else "page"
+        raise FetchError(f"Couldn't read this {kind} ({type(e).__name__}). Try another source.") from None
     text = re.sub(r"[ \t]+", " ", text).strip()
     if len(text) < 600:
         raise FetchError(f"Only {len(text)} characters extracted from {url}: likely a paywall, login wall, "
@@ -55,4 +62,4 @@ def fetch(url: str) -> tuple[dict, str]:
 
 
 def paragraphs(text: str) -> list[str]:
-    return [p.strip() for p in re.split(r"\n\s*\n|\n", text) if p.strip()]
+    return [t for _, t in paragraph_spans(text)]

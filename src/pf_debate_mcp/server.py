@@ -10,11 +10,12 @@ from datetime import date
 from pathlib import Path
 
 from mcp.server.mcpserver import MCPServer
+from mcp.server.mcpserver.exceptions import ToolError
 
 from . import caselist as cl
 from . import library, store
-from .cards import CutError, cut, format_cite, ranges_from_runs, render
-from .docx_io import export, parse
+from .cards import CutError, cut, format_cite, ranges_from_runs, render, render_read
+from .docx_io import export, export_html, parse
 from .sources import FetchError, fetch, paragraphs
 
 SKILLS = Path(__file__).parent / "skills"
@@ -36,15 +37,15 @@ def _card(card_id: str) -> dict:
     elif m := re.fullmatch(r"c(\d+)", card_id):
         card = store.get_card(int(m[1]))
     else:
-        raise ValueError(f"Unknown card id '{card_id}' (expected lib:N or cN).")
+        raise ToolError(f"Unknown card id '{card_id}' (expected lib:N or cN).")
     if not card:
-        raise ValueError(f"Card {card_id} not found.")
+        raise ToolError(f"Card {card_id} not found. Use search_cards (scope='mine' for your own cuts).")
     return card
 
 
 @mcp.tool()
 def search_cards(query: str, scope: str = "library", year_from: int | None = None, side: str | None = None,
-                 event: str | None = None, sort: str = "relevance", limit: int = 10) -> list[dict] | str:
+                 event: str | None = None, sort: str = "relevance", limit: int = 10) -> list[dict]:
     """Search already-cut debate cards by keywords.
 
     scope: "library" = OpenCaselist corpus (PF, LD, Policy, camp OpenEv files; 2014-2022);
@@ -56,17 +57,21 @@ def search_cards(query: str, scope: str = "library", year_from: int | None = Non
     limit = max(1, min(limit, 30))
     if scope == "mine":
         return [dict(r) | {"id": f"c{r['id']}"} for r in store.search_cards(query, limit)]
-    st = library.status()
-    if not st["built"]:
-        return f"Card library not built yet. {st['fix']} Meanwhile use web search + fetch_source + cut_card."
+    if not library.ready():
+        raise ToolError("Card library not built yet. Call build_library (or run `pf-debate-mcp build-library`). "
+                        "Meanwhile use web search + fetch_source + cut_card.")
     return library.search(query, limit, year_from, side, event, sort)
 
 
 @mcp.tool()
-def get_card(card_id: str) -> str:
-    """Full card by id (lib:N or cN): tag, cite, and body where ==text== is highlighted (read aloud)
-    and _text_ is underlined. Read the unhighlighted text too: it shows context and possible indicts."""
+def get_card(card_id: str, view: str = "read") -> str:
+    """Card by id (lib:N or cN). view="read" (default, compact): tag, cite, and only the underlined/highlighted
+    text (==highlighted== is read aloud, _underlined_ is context, ... marks skipped text). view="full": the whole
+    body, needed to judge context, find indicts in unhighlighted text, or recut."""
     card = _card(card_id)
+    if view != "full":
+        read = f"\n(read by {card['times_read']} teams)" if card.get("times_read") else ""
+        return render_read(card) + read
     extra = f"\n(read by {card['times_read']} teams; {card['origin']})" if card.get("times_read") else ""
     if not any(h for _, _, h in card["runs"]):
         extra += "\n(unmarked card: the team read it in full; recut it with cut_card to highlight)"
@@ -81,7 +86,7 @@ def fetch_source(url_or_id: str, start_paragraph: int = 0) -> str:
     if m := re.fullmatch(r"s(\d+)", url_or_id.strip()):
         row = store.get_source(int(m[1]))
         if not row:
-            return f"Source {url_or_id} not found."
+            raise ToolError(f"Source {url_or_id} not found; call fetch_source with the URL.")
         sid, meta, text = row["id"], dict(row), row["text"]
     else:
         url = url_or_id.strip()
@@ -92,7 +97,7 @@ def fetch_source(url_or_id: str, start_paragraph: int = 0) -> str:
             try:
                 meta, text = fetch(url)
             except FetchError as e:
-                return f"ERROR: {e}"
+                raise ToolError(str(e)) from None
             sid = store.add_source(url, meta, text)
     paras = paragraphs(text)
     out, size, i = [], 0, start_paragraph
@@ -110,28 +115,27 @@ def fetch_source(url_or_id: str, start_paragraph: int = 0) -> str:
 @mcp.tool()
 def cut_card(source_id: str, tag: str, author: str, date: str, title: str, publisher: str, url: str,
              quals: str, start_quote: str, end_quote: str, highlight: list[str],
-             underline: list[str] | None = None) -> str:
+             underline: list[str] | None = None, paragraph: int | None = None) -> str:
     """Cut an evidence card. The body is the exact source text from start_quote through end_quote
     (a few sentences to a few paragraphs; enough context that the author's meaning is clear).
     highlight = phrases read aloud; underline = wider phrases that give context (defaults to highlight).
     Every quote must be copied verbatim from the source (only whitespace, quote marks and dashes are
     normalized); anything else is rejected with a hint showing where the text stopped matching.
-    source_id: sN from fetch_source, or a card id (cN, lib:N) to re-cut an existing card."""
+    source_id: sN from fetch_source, or a card id (cN, lib:N) to re-cut an existing card.
+    paragraph: the [N] number from fetch_source where the card starts; required when start_quote appears
+    more than once in the source."""
     sid = source_id.strip()
     if m := re.fullmatch(r"s(\d+)", sid):
         row = store.get_source(int(m[1]))
         if not row:
-            return f"ERROR: source {sid} not found; call fetch_source first."
+            raise ToolError(f"Source {sid} not found; call fetch_source first.")
         text = row["text"]
     else:
-        try:
-            text = ranges_from_runs(_card(sid)["runs"])[0]
-        except ValueError as e:
-            return f"ERROR: {e}"
+        text = ranges_from_runs(_card(sid)["runs"])[0]
     try:
-        c = cut(text, start_quote, end_quote, underline or [], highlight)
+        c = cut(text, start_quote, end_quote, underline or [], highlight, paragraph)
     except CutError as e:
-        return f"REJECTED: {e}"
+        raise ToolError(f"REJECTED (card not saved): {e}") from None
     short, rest, cite_warn = format_cite({"author": author, "date": date, "title": title, "publisher": publisher,
                                           "url": url, "quals": quals, "accessed": None})
     cid = store.add_card(tag.strip(), short, rest, c["body"], c["underline"], c["highlight"], origin=sid)
@@ -142,11 +146,15 @@ def cut_card(source_id: str, tag: str, author: str, date: str, title: str, publi
 
 
 @mcp.tool()
-def export_doc(title: str, items: list[dict], filename: str | None = None) -> str:
-    """Write a Verbatim-compatible .docx speech doc / case / block file. items in order, each one of:
+def export_doc(title: str, items: list[dict], filename: str | None = None, format: str = "docx") -> str:
+    """Write a speech doc / case / block file. items in order, each one of:
     {"pocket": "..."} {"hat": "..."} {"block": "..."} (Verbatim headings: Pocket > Hat > Block),
     {"tag": "..."} (analytic tag, no card), {"text": "..."} (speech prose), {"card": "c12" | "lib:345"}.
+    format "docx": Verbatim-compatible Word file. format "gdocs": an .html file for Google Docs users (open it,
+    select all, copy, paste into a Google Doc; or upload it to Google Drive and open with Google Docs).
     Returns the file path."""
+    if format not in ("docx", "gdocs"):
+        raise ToolError('format must be "docx" or "gdocs"')
     resolved = []
     for it in items:
         if "card" in it:
@@ -154,31 +162,33 @@ def export_doc(title: str, items: list[dict], filename: str | None = None) -> st
         elif len(it) == 1 and next(iter(it)) in ("pocket", "hat", "block", "tag", "text"):
             resolved.append(it)
         else:
-            return f"ERROR: bad item {it}"
+            raise ToolError(f"Bad item {it}: use one key of pocket/hat/block/tag/text, or card.")
     name = filename or f"{title}-{date.today().isoformat()}"
-    name = re.sub(r'[<>:"/\\|?*]', "", name).strip() or "pf-doc"
-    path = export(title, resolved, store.EXPORT_DIR / (name if name.endswith(".docx") else name + ".docx"))
-    return f"Saved {path}"
+    name = re.sub(r'[<>:"/\\|?*]', "", name).strip().removesuffix(".docx").removesuffix(".html") or "pf-doc"
+    if format == "gdocs":
+        path = export_html(title, resolved, store.EXPORT_DIR / f"{name}.html")
+        return f"Saved {path} (open it, select all, copy, paste into Google Docs)"
+    return f"Saved {export(title, resolved, store.EXPORT_DIR / f'{name}.docx')}"
 
 
 @mcp.tool()
-def caselist_search(query: str, caselist: str | None = None) -> list[dict] | str:
+def caselist_search(query: str, caselist: str | None = None) -> list[dict]:
     """Search OpenCaselist (disclosed cases) for a team, debater last name, or argument text.
     Defaults to the current HS PF caselist; pass a slug like 'hspf25' for older ones. Limit: 4/min."""
     try:
         return cl.search(query, caselist)
     except cl.CaselistError as e:
-        return f"ERROR: {e}"
+        raise ToolError(str(e)) from None
 
 
 @mcp.tool()
-def caselist_team(school: str, team: str, caselist: str | None = None) -> dict | str:
+def caselist_team(school: str, team: str, caselist: str | None = None) -> dict:
     """A team's caselist page: rounds (tournament, side, opponent, round report, open-source file path)
     and cites (their disclosed cards). Use for scouting and building blocks against their case."""
     try:
         return cl.team(school, team, caselist)
     except cl.CaselistError as e:
-        return f"ERROR: {e}"
+        raise ToolError(str(e)) from None
 
 
 @mcp.tool()
@@ -188,11 +198,11 @@ def caselist_download(path: str) -> str:
     try:
         data = cl.download(path)
     except cl.CaselistError as e:
-        return f"ERROR: {e}"
+        raise ToolError(str(e)) from None
     try:
         cards = parse(data)
-    except Exception as e:  # corrupt or non-docx file
-        return f"ERROR: could not parse {path} as .docx: {e}"
+    except Exception as e:  # corrupt or non-docx input: python-docx raises several unrelated types
+        raise ToolError(f"Could not read {path} as a .docx ({type(e).__name__}).") from None
     lines = []
     for c in cards:
         body, ul, hl = ranges_from_runs(c["runs"])
@@ -215,7 +225,7 @@ def build_library(mode: str = "quick") -> str:
     mode "quick": PF cards only (~6-8k cards, minutes). mode "full": PF + camp OpenEv files + widely read
     LD/Policy cards (~170k cards incl. most big-impact cards, a few hours, ~0.8 GB). Ask before starting "full"."""
     if mode not in library.PRESETS:
-        return f"ERROR: mode must be one of {list(library.PRESETS)}"
+        raise ToolError(f"mode must be one of {list(library.PRESETS)}")
     return library.start_background_build(mode)
 
 

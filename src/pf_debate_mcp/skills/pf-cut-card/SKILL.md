@@ -8,7 +8,7 @@ description: Use when a debater asks to cut a card, find evidence or a source fo
 **REQUIRED BACKGROUND:** pf-debate (evidence rule) and its references/evidence-ethics.md.
 
 ## Workflow
-1. **Library first.** Use `search_cards(query)` with 2–4 phrasings (debate shorthand helps: "econ decline war", "heg", "prolif"). For impacts, add `sort="popular"`. `get_card` the promising ones. A strong existing card beats a new cut. For new facts about the current topic, the library (2014–2022) will often have nothing: go to the web.
+1. **Library first.** Use `search_cards(query)` with 2–4 phrasings (debate shorthand helps: "econ decline war", "heg", "prolif"). For impacts, add `sort="popular"`. `get_card` the promising ones (the default compact view shows only the read text; use `view="full"` to check context before relying on a card). A strong existing card beats a new cut. For new facts about the current topic, the library (2014–2022) will often have nothing: go to the web.
 2. **Web.** Use your own web search for recent, qualified sources: think tanks, academic papers, government reports, and major outlets. Prefer sources that contain the warrant, not just the claim.
 3. **`fetch_source(url)`** returns numbered paragraphs plus metadata. If it errors (paywall or JS page), pick another source. Never cut from a search snippet or from memory.
 4. **Find the author's quals** (their bio on the page, or search "<author> <outlet>").
@@ -17,7 +17,7 @@ description: Use when a debater asks to cut a card, find evidence or a source fo
    - `highlight`: the phrases read aloud, in order, copied exactly. Together they should read as grammatical sentences that prove the tag.
    - `underline`: wider phrases for context (optional; defaults to the highlight).
    - `tag`: one sentence the highlighted text actually proves. It should be arguable and specific ("Moratorium cedes the compute race to China"), not a restatement.
-6. On **REJECTED**, re-read the source text and copy it exactly (the hint shows where it diverged). On **WARNINGS**, fix and re-cut if it matters (missing quals, a thin body).
+6. On **REJECTED** (returned as an error; the card is not saved), re-read the source text and copy it exactly (the hint shows where it diverged). If the start_quote appears more than once, pass `paragraph=<N>` from the [N] numbers in `fetch_source`. On **WARNINGS**, fix and re-cut if it matters (missing quals, a thin body).
 7. Show the user the card (the `get_card` format). Offer `export_doc`.
 
 ## Recut / retag

@@ -40,4 +40,4 @@ MCP hosts without skills can use `pf_guide`; the same guides are also MCP prompt
 ## Defaults
 - Ask which side and speaking position, and the judge type (lay/flow/tech), when it changes the output. Otherwise assume a flow judge.
 - Current topic: confirm via web search ("NSDA Public Forum topic <month year>"). Don't assume.
-- Deliverables go to a Verbatim .docx via `export_doc` (the path is returned). Offer it whenever cards are involved.
+- Deliverables go to a Verbatim .docx via `export_doc` (the path is returned). Offer it whenever cards are involved. Google Docs users (most Chromebooks) get `export_doc(..., format="gdocs")`: an .html file to open, copy, and paste into Google Docs.

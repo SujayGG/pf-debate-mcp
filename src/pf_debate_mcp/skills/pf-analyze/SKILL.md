@@ -5,7 +5,7 @@ description: Use when a debater asks to analyze, rate, check, or indict a card, 
 
 # Analyzing cards and cases
 
-Get the text first: `get_card(id)` for cN or lib:N ids, `caselist_download` for opponent open-source docs, or the text the user pasted.
+Get the text first: `get_card(id, view="full")` for cN or lib:N ids (the full view shows the unhighlighted text, where indicts live), `caselist_download` for opponent open-source docs, or the text the user pasted.
 
 ## Card checklist
 | Check | Ask |

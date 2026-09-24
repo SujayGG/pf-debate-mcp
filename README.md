@@ -60,7 +60,7 @@ Download **[instructions.md](https://github.com/SujayGG/pf-debate-mcp/releases/l
 | `search_cards` / `get_card` | Local library of cut cards from [OpenCaselist](https://huggingface.co/datasets/Yusuf5/OpenCaselist) (PF, LD, Policy, camp files; 2014–2022), with "popular" ranking by how many teams read a card |
 | `fetch_source` | Any article or PDF, turned into clean paragraphs plus citation metadata |
 | `cut_card` | Cuts a card; the text must match the source verbatim or it's rejected. Full NSDA citations. |
-| `export_doc` | A Verbatim-compatible .docx (Pocket/Hat/Block/Tag, underline, highlight) |
+| `export_doc` | A Verbatim-compatible .docx (Pocket/Hat/Block/Tag, underline, highlight), or `format="gdocs"` for a Google-Docs-ready page |
 | `caselist_search` / `caselist_team` / `caselist_download` | OpenCaselist with your Tabroom login: round reports, cites, open-source docs as cards |
 | `build_library` / `library_status` | Build the card library in the background and check its progress |
 
