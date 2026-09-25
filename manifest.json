@@ -2,7 +2,7 @@
   "manifest_version": "0.4",
   "name": "pf-debate",
   "display_name": "PF Debate Partner",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Public Forum debate partner: PF knowledge, a card library, verbatim card cutting, caselist scouting, and Verbatim speech docs.",
   "long_description": "Turns Claude into a Public Forum debate partner. Search a library of already-cut cards (OpenCaselist), cut new cards from any article with a verbatim-only check, build cases, blocks and speeches, scout opponents on OpenCaselist, and export Verbatim-compatible .docx speech docs. First use: ask Claude to \"build the quick card library\".",
   "author": { "name": "SujayGG", "url": "https://github.com/SujayGG" },

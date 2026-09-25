@@ -33,10 +33,12 @@ def _style_doc(doc) -> None:
 
 
 def export(title: str, items: list[dict], path: Path) -> Path:
-    """items: {"pocket"|"hat"|"block"|"tag": str} | {"text": str} | {"card": card dict}."""
+    """items: {"pocket"|"hat"|"block"|"tag": str} | {"text": str} | {"card": card dict}.
+    A text starting with "- " is a bullet (an analytic warrant under a response)."""
     doc = Document()
     _style_doc(doc)
     doc.core_properties.title = title
+    doc.add_paragraph(title, style="Title")
     for item in items:
         if "card" in item:
             c = item["card"]
@@ -51,14 +53,21 @@ def export(title: str, items: list[dict], path: Path) -> Path:
                     p = doc.add_paragraph()
                     continue
                 r = p.add_run(text)
-                if u or h:
+                if h:  # read aloud: bold, underlined, highlighted, full size
+                    r.bold = r.underline = True
+                    r.font.size = Pt(12)
+                    r.font.highlight_color = WD_COLOR_INDEX.TURQUOISE
+                elif u:  # context
                     r.underline = True
+                    r.font.size = Pt(10)
                 else:
                     r.font.size = Pt(8)  # unread text is shrunk, the Verbatim convention
-                if h:
-                    r.font.highlight_color = WD_COLOR_INDEX.TURQUOISE
         elif "text" in item:
-            doc.add_paragraph(item["text"], style="Analytic")
+            t = item["text"]
+            if t.startswith("- "):
+                doc.add_paragraph(t[2:], style="List Bullet")
+            else:
+                doc.add_paragraph(t, style="Analytic")
         else:
             (kind, text), = item.items()
             doc.add_heading(text, _HEADINGS[kind][0])
@@ -72,7 +81,8 @@ def export_html(title: str, items: list[dict], path: Path) -> Path:
     (headings, bold cite, underline, highlight, small unread text)."""
     esc = html.escape
     out = [f"<!doctype html><meta charset='utf-8'><title>{esc(title)}</title>"
-           "<body style='font-family:Calibri,Arial,sans-serif;font-size:11pt'>"]
+           "<body style='font-family:Calibri,Arial,sans-serif;font-size:11pt'>"
+           f"<p style='font-size:26pt'>{esc(title)}</p>"]
     for item in items:
         if "card" in item:
             c = item["card"]
@@ -81,15 +91,16 @@ def export_html(title: str, items: list[dict], path: Path) -> Path:
             for text, u, h in c["runs"]:
                 t = esc(text).replace("\n", "</p><p>")
                 if h:
-                    t = f"<u style='background-color:#00ffff'>{t}</u>"
+                    t = f"<b><u style='background-color:#00ffff;font-size:12pt'>{t}</u></b>"
                 elif u:
-                    t = f"<u>{t}</u>"
+                    t = f"<u style='font-size:10pt'>{t}</u>"
                 else:
                     t = f"<span style='font-size:8pt'>{t}</span>"
                 out.append(t)
             out.append("</p>")
         elif "text" in item:
-            out.append(f"<p>{esc(item['text'])}</p>")
+            t = item["text"]
+            out.append(f"<ul><li>{esc(t[2:])}</li></ul>" if t.startswith("- ") else f"<p>{esc(t)}</p>")
         else:
             (kind, text), = item.items()
             out.append(f"<h{_HEADINGS[kind][0]}>{esc(text)}</h{_HEADINGS[kind][0]}>")
@@ -132,7 +143,7 @@ def parse(data: bytes) -> list[dict]:
                 ctx["block"] = None
             cur = None
             continue
-        if (p.style.name or "").lower() == "analytic":
+        if (p.style.name or "").lower() in ("analytic", "list bullet", "title"):
             cur = None
             continue
         if level == "tag":

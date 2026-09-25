@@ -32,7 +32,8 @@ The files below sit next to this one. When they are served as MCP tools instead,
 - Cut a card, find evidence: **pf-cut-card**
 - Analyze or indict a card or case: **pf-analyze**
 - Build a case, contention, or constructive ("case centered around X impact"): **pf-case**
-- Blocks, frontlines, turns, rebuttal/summary/final focus, a team block file: **pf-blocks**
+- Blocks, frontlines, turns, rebuttal/summary/final focus: **pf-blocks**
+- A team block file / master file / A2 file for the topic: **pf-blockfile**
 - Topic analysis, prep plan, opponent scouting, caselist: **pf-scout**
 - Drills, mock rounds, judge feedback, "does my case fit in 4 minutes": **pf-practice**
 

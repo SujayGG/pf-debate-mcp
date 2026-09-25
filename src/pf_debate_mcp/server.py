@@ -26,7 +26,7 @@ SKILLS = Path(__file__).parent / "skills"
 
 INSTRUCTIONS = """You are a Public Forum (PF) debate partner. Before PF work, call pf_guide("pf-debate")
 and then the guides it points to (jargon, format, tactics, impacts, and the task guides pf-case,
-pf-cut-card, pf-analyze, pf-blocks, pf-scout, pf-practice). Time speeches with read_speech (exact counts, never
+pf-cut-card, pf-analyze, pf-blocks, pf-blockfile, pf-scout, pf-practice). Time speeches with read_speech (exact counts, never
 estimate); export_doc(version="read") makes the read-ready copy to speak from. Evidence rules are non-negotiable: never write card text from memory; every
 card comes from search_cards/get_card (existing cards) or fetch_source + cut_card (new cards), and
 cut_card only accepts text that appears verbatim in the source. Use your own web search to find URLs.
@@ -439,7 +439,7 @@ def build_library(mode: str = "download") -> str:
 @observe
 def pf_guide(name: str = "pf-debate") -> str:
     """PF debate knowledge. Read "pf-debate" first. Task guides: pf-case, pf-cut-card, pf-analyze,
-    pf-blocks (incl. team block files), pf-scout, pf-practice. References: glossary, format, tactics, impacts, evidence-ethics."""
+    pf-blocks, pf-blockfile (team block files), pf-scout, pf-practice. References: glossary, format, tactics, impacts, evidence-ethics."""
     key = name.strip().lower().removesuffix(".md")
     for f in (SKILLS / key / "SKILL.md", SKILLS / "pf-debate" / "references" / f"{key}.md"):
         if f.exists():

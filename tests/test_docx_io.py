@@ -21,6 +21,24 @@ def test_round_trip(tmp_path):
     assert c["runs"] == CARD["runs"]
 
 
+def test_blockfile_layout_round_trip(tmp_path):
+    items = [{"text": "Resolved: something."}, {"pocket": "PRO / A2 CON"}, {"hat": "A2 Cyberattacks"},
+             {"card": {**CARD, "tag": "1. [NU] Breaches already triple"}}, {"text": "- Risk is the baseline"},
+             {"tag": "2. [DL] Not a backdoor (analytic)"}, {"text": "- Court order first"}]
+    path = export("PESH MASTER BLOCKFILE", items, tmp_path / "bf.docx")
+    from docx import Document
+    doc = Document(str(path))
+    assert doc.paragraphs[0].style.name == "Title" and doc.paragraphs[0].text == "PESH MASTER BLOCKFILE"
+    assert [p.text for p in doc.paragraphs if p.style.name == "List Bullet"] == ["Risk is the baseline",
+                                                                                 "Court order first"]
+    read = [r for p in doc.paragraphs for r in p.runs if r.text == "the binding constraint"][0]
+    assert read.bold and read.underline and read.font.size.pt == 12
+    cards = parse(path.read_bytes())
+    assert [(c["pocket"], c["hat"], c["tag"]) for c in cards] == [("PRO / A2 CON", "A2 Cyberattacks",
+                                                                   "1. [NU] Breaches already triple")]
+    assert cards[0]["runs"] == CARD["runs"]  # the warrant bullet is not folded into the card
+
+
 def test_dataset_markup():
     m = "<h4>Tag</h4><p><strong>X 12</strong> cite</p><p>Lastly, <u><mark>weak <strong>econ</strong></mark>. Other</u> text</p>"
     assert runs_from_markup(m) == [("Lastly, ", False, False), ("weak econ", True, True),
