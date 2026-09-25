@@ -89,6 +89,14 @@ def test_ssrf_checks_every_redirect_hop(web, any_port, monkeypatch):
         sources.fetch(f"{web}/hop", block_private=True)
 
 
+def test_ssrf_blocks_dns_rebinding(web, any_port, monkeypatch):
+    # the guard's lookup says "public", but the real connection lands on 127.0.0.1
+    monkeypatch.setattr(sources, "_resolve", lambda host, *a, **kw: [
+        (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 80))])
+    with pytest.raises(sources.FetchError, match="private or internal"):
+        sources.fetch(f"{web}/article", block_private=True)
+
+
 def test_download_size_cap(web, monkeypatch):
     monkeypatch.setitem(sources.MAX_BYTES, False, 100)
     with pytest.raises(sources.FetchError, match="too large"):

@@ -61,11 +61,19 @@ def check_public(url: str) -> None:
     for info in infos:
         if not ipaddress.ip_address(info[4][0].split("%")[0]).is_global:
             raise FetchError("That address is private or internal, so the server won't fetch it.")
-    # ponytail: DNS is resolved again by httpx after this check (rebinding window); pin the IP if abused
+
+
+def check_peer(resp: httpx.Response) -> None:
+    """httpx resolves DNS again after check_public, so a rebinding DNS server could still point the real
+    connection at a private address. Check the address actually connected to before reading the body."""
+    stream = resp.extensions.get("network_stream")
+    addr = stream and stream.get_extra_info("server_addr")
+    if not addr or not ipaddress.ip_address(addr[0].split("%")[0]).is_global:
+        raise FetchError("That address is private or internal, so the server won't fetch it.")
 
 
 def fetch(url: str, block_private: bool = False) -> tuple[dict, str]:
-    hooks = {"request": [lambda req: check_public(str(req.url))]} if block_private else {}
+    hooks = {"request": [lambda req: check_public(str(req.url))], "response": [check_peer]} if block_private else {}
     try:
         with httpx.Client(headers={"User-Agent": _UA}, follow_redirects=True, max_redirects=5, timeout=30,
                           event_hooks=hooks) as client, client.stream("GET", url) as r:
