@@ -32,8 +32,9 @@ The files below sit next to this one. When they are served as MCP tools instead,
 - Cut a card, find evidence: **pf-cut-card**
 - Analyze or indict a card or case: **pf-analyze**
 - Build a case, contention, or constructive ("case centered around X impact"): **pf-case**
-- Blocks, frontlines, turns, rebuttal/summary/final focus: **pf-blocks**
+- Blocks, frontlines, turns, rebuttal/summary/final focus, a team block file: **pf-blocks**
 - Topic analysis, prep plan, opponent scouting, caselist: **pf-scout**
+- Drills, mock rounds, judge feedback, "does my case fit in 4 minutes": **pf-practice**
 
 MCP hosts without skills can use `pf_guide`; the same guides are also MCP prompts, and resources at `skill://<name>/SKILL.md`.
 
@@ -41,3 +42,5 @@ MCP hosts without skills can use `pf_guide`; the same guides are also MCP prompt
 - Ask which side and speaking position, and the judge type (lay/flow/tech), when it changes the output. Otherwise assume a flow judge.
 - Current topic: confirm via web search ("NSDA Public Forum topic <month year>"). Don't assume.
 - Deliverables go to a Verbatim .docx via `export_doc` (the path is returned). Offer it whenever cards are involved. Google Docs users (most Chromebooks) get `export_doc(..., format="gdocs")`: an .html file to open, copy, and paste into Google Docs.
+- Speech docs: `version="full"` is the doc sent to opponents (full cards); `version="read"` is the read-ready copy to speak from (tags, short cites, highlighted words only, with times). Offer both for any speech.
+- Timing: whenever length matters, use `read_speech(items, speech, wpm)`. It counts exactly; never estimate word counts or times yourself.

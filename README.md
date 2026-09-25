@@ -70,7 +70,8 @@ Download **[instructions.md](https://github.com/SujayGG/pf-debate-mcp/releases/l
 | `fetch_source` | Any article or PDF, turned into clean paragraphs plus citation metadata |
 | `suggest_cut` | Proposes the best passage and highlights for your claim (exact source text) |
 | `cut_card` | Cuts a card; the text must match the source verbatim or it's rejected. Full NSDA citations. |
-| `export_doc` | A Verbatim-compatible .docx (Pocket/Hat/Block/Tag, underline, highlight), or `format="gdocs"` for a Google-Docs-ready page |
+| `export_doc` | A Verbatim-compatible .docx (Pocket/Hat/Block/Tag, underline, highlight), or `format="gdocs"` for a Google-Docs-ready page. `version="read"` makes the read-ready copy to speak from (tags, short cites, highlighted words only, each section timed) |
+| `read_speech` | Exact speech timing at the debater's pace: total vs. the speech's limit, time per contention/block, what to trim, and the read-aloud script |
 | `caselist_search` / `caselist_team` / `caselist_download` | OpenCaselist with your Tabroom login: round reports, cites, open-source docs as cards |
 | `build_library` / `library_status` | Build the card library in the background and check its progress |
 

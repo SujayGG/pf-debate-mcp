@@ -20,12 +20,14 @@ from .metrics import observe
 from .cards import CutError, cut, format_cite, ranges_from_runs, render, render_read
 from .docx_io import export, export_html, parse
 from .sources import FetchError, fetch, paragraphs
+from .speech import check_wpm, clock, read_runs, report, script, section_words
 
 SKILLS = Path(__file__).parent / "skills"
 
 INSTRUCTIONS = """You are a Public Forum (PF) debate partner. Before PF work, call pf_guide("pf-debate")
 and then the guides it points to (jargon, format, tactics, impacts, and the task guides pf-case,
-pf-cut-card, pf-analyze, pf-blocks, pf-scout). Evidence rules are non-negotiable: never write card text from memory; every
+pf-cut-card, pf-analyze, pf-blocks, pf-scout, pf-practice). Time speeches with read_speech (exact counts, never
+estimate); export_doc(version="read") makes the read-ready copy to speak from. Evidence rules are non-negotiable: never write card text from memory; every
 card comes from search_cards/get_card (existing cards) or fetch_source + cut_card (new cards), and
 cut_card only accepts text that appears verbatim in the source. Use your own web search to find URLs.
 IDs: lib:N = library card; cN or c_xxxx = a card you cut; sN or s_xxxx = a fetched source."""
@@ -271,22 +273,56 @@ def cut_card(source_id: str, tag: str, author: str, date: str, title: str, publi
     return f"Saved as {cid}.\n{render(card)}{note}{keep}"
 
 
-def render_doc(title: str, items: list[dict], filename: str | None, format: str) -> tuple[str, bytes]:
-    """(safe file name, file bytes) for a speech doc. Shared by export_doc and the web app."""
-    if format not in ("docx", "gdocs"):
-        raise ToolError('format must be "docx" or "gdocs"')
+def _resolve(items: list[dict]) -> list[dict]:
+    """Doc items with card ids replaced by card dicts (an item's "tag" replaces the card's own)."""
     resolved = []
     for it in items:
         if "card" in it:
             card = _card(it["card"])
-            if isinstance(it.get("tag"), str) and it["tag"].strip():  # an edited tag replaces the card's own
+            if isinstance(it.get("tag"), str) and it["tag"].strip():
                 card = {**card, "tag": it["tag"].strip()}
             resolved.append({"card": card})
         elif len(it) == 1 and next(iter(it)) in ("pocket", "hat", "block", "tag", "text"):
             resolved.append(it)
         else:
             raise ToolError(f"Bad item {it}: use one key of pocket/hat/block/tag/text, or card.")
-    name = filename or f"{title}-{date.today().isoformat()}"
+    return resolved
+
+
+def _read_version(resolved: list[dict], wpm: int) -> list[dict]:
+    """Read-ready doc: cards cut down to tag, short cite and read words; hat/block headings carry their time."""
+    lines = script(resolved)
+    times = section_words(lines)
+    total = sum(n for _, _, n in lines)
+    out = [{"text": f"Reads in {clock(total / wpm * 60)} at {wpm} words per minute ({total} words)."}]
+    i = 0  # index into lines: a card is two lines (tag, body), everything else one
+    for it in resolved:
+        if "card" in it:
+            c = it["card"]
+            out.append({"card": {**c, "cite_rest": "", "runs": read_runs(c["runs"])}})
+            i += 2
+            continue
+        (kind, text), = it.items()
+        out.append({kind: f"{text} [{clock(times[i] / wpm * 60)}]"} if i in times else it)
+        i += 1
+    return out
+
+
+def render_doc(title: str, items: list[dict], filename: str | None, format: str, version: str = "full",
+               wpm: int = 160) -> tuple[str, bytes]:
+    """(safe file name, file bytes) for a speech doc. Shared by export_doc and the web app."""
+    if format not in ("docx", "gdocs"):
+        raise ToolError('format must be "docx" or "gdocs"')
+    if version not in ("full", "read"):
+        raise ToolError('version must be "full" or "read"')
+    resolved = _resolve(items)
+    if version == "read":
+        try:
+            check_wpm(wpm)
+        except ValueError as e:
+            raise ToolError(str(e)) from None
+        resolved = _read_version(resolved, wpm)
+    name = filename or f"{title}-{date.today().isoformat()}" + ("-read" if version == "read" else "")
     name = re.sub(r'[<>:"/\\|?*]+', "", name).strip().removesuffix(".docx").removesuffix(".html") or "pf-doc"
     writer, ext = (export_html, "html") if format == "gdocs" else (export, "docx")
     with tempfile.TemporaryDirectory() as tmp:
@@ -296,23 +332,43 @@ def render_doc(title: str, items: list[dict], filename: str | None, format: str)
 
 @mcp.tool()
 @observe
-def export_doc(title: str, items: list[dict], filename: str | None = None, format: str = "docx") -> str:
+def export_doc(title: str, items: list[dict], filename: str | None = None, format: str = "docx",
+               version: str = "full", wpm: int = 160) -> str:
     """Write a speech doc / case / block file. items in order, each one of:
     {"pocket": "..."} {"hat": "..."} {"block": "..."} (Verbatim headings: Pocket > Hat > Block),
     {"tag": "..."} (analytic tag, no card), {"text": "..."} (speech prose), {"card": "c12" | "lib:345"}
     (optionally {"card": id, "tag": "new tag"} to retag a card in the export).
     format "docx": Verbatim-compatible Word file. format "gdocs": an .html file for Google Docs users (open it,
     select all, copy, paste into a Google Doc; or upload it to Google Drive and open with Google Docs).
+    version "full" (default): complete cards, the doc you send in the email chain / keep as the file.
+    version "read": read-ready copy to speak from (Rhetorify): each card cut to tag, short cite and only its
+    highlighted words, each hat/block heading marked with its time at `wpm`, total time on top.
     Returns the file path."""
     how = " (open it, select all, copy, paste into Google Docs)" if format == "gdocs" else ""
     if store.HOSTED:  # nothing is written to the shared server's disk for long: serve it from memory
-        fname, data = render_doc(title, items, filename, format)
+        fname, data = render_doc(title, items, filename, format, version, wpm)
         return f"Download (link works for 1 hour): {store.save_export(fname, data)}{how}"
-    fname, data = render_doc(title, items, filename, format)
+    fname, data = render_doc(title, items, filename, format, version, wpm)
     path = store.EXPORT_DIR / fname
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(data)
     return f"Saved {path}{how}"
+
+
+@mcp.tool()
+@observe
+def read_speech(items: list[dict], speech: str = "constructive", wpm: int = 160) -> str:
+    """Time a speech exactly and return its read-ready script (what is actually said aloud). Use it to check a
+    case fits before exporting, and to see what to trim. Counting is exact, never estimate word counts yourself.
+    items: the same list as export_doc (headings, {"tag"}, {"text"}, {"card": id}). A card counts its tag, short
+    cite and highlighted words only. For a case pasted as plain text, pass the words the debater actually reads
+    as {"text": ...} items (highlighting in pasted text can't be seen).
+    speech: constructive (4:00), rebuttal (4:00), summary (3:00), final focus (2:00).
+    wpm: the debater's pace. Lay about 160, fast about 200, circuit about 230+. Ask their pace if it matters."""
+    try:
+        return report(_resolve(items), speech, wpm)
+    except ValueError as e:
+        raise ToolError(str(e)) from None
 
 
 @mcp.tool()
@@ -383,7 +439,7 @@ def build_library(mode: str = "download") -> str:
 @observe
 def pf_guide(name: str = "pf-debate") -> str:
     """PF debate knowledge. Read "pf-debate" first. Task guides: pf-case, pf-cut-card, pf-analyze,
-    pf-blocks, pf-scout. References: glossary, format, tactics, impacts, evidence-ethics."""
+    pf-blocks (incl. team block files), pf-scout, pf-practice. References: glossary, format, tactics, impacts, evidence-ethics."""
     key = name.strip().lower().removesuffix(".md")
     for f in (SKILLS / key / "SKILL.md", SKILLS / "pf-debate" / "references" / f"{key}.md"):
         if f.exists():

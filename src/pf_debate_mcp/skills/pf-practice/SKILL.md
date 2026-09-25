@@ -31,7 +31,7 @@ Output:
 4. **3 concrete improvements**, each tied to a specific moment in the speech.
 
 ## Speech time/word check
-Paste text; estimate spoken time from the word count and the pace named (lay ~160 wpm, circuit ~220+ wpm, per format.md). Compare against that speech's time budget (constructive/rebuttal 4:00, summary 3:00, final focus 2:00) and flag overtime or padding. Count only what would actually be spoken (skip stage directions); card text counts only the highlighted words plus tag and cite, per format.md.
+Use `read_speech(items, speech, wpm)`: it counts exactly and returns per-section times plus a read-ready script. Never estimate word counts yourself. Cards built or found with the tools go in as `{"card": id}` (only tag, short cite and highlighted words count). A case pasted as plain text loses its highlighting, so pass only the words the debater actually reads as `{"text": ...}` items (skip stage directions and unread card text), or ask them to rebuild it with the tools. Ask their pace if unknown (lay ~160 wpm, fast ~200, circuit ~230+). Then flag overtime or padding and say what to trim first (the longest cards the tool lists).
 
 ## Rules
 - Stay in role (questioner, opponent, or judge) until the student says stop.
