@@ -415,6 +415,17 @@ def caselist_download(path: str) -> str:
         data = cl.download(path)
     except cl.CaselistError as e:
         raise ToolError(str(e)) from None
+    if data[:5] == b"%PDF-":  # PDF disclosures have no highlighting to recover: import the text as a source
+        from .sources import _pdf
+        try:
+            meta, text = _pdf(data)
+        except Exception as e:
+            raise ToolError(f"Could not read the PDF {path} ({type(e).__name__}).") from None
+        sid = store.add_source(f"caselist:{path}", {**meta, "title": meta.get("title") or path}, text)
+        paras = paragraphs(text)
+        return (f"{path} is a PDF ({len(paras)} paragraphs), imported as source {sid}. Highlighting isn't "
+                f"kept in PDFs: read it with fetch_source('{sid}') and cut from it with cut_card.\n\n"
+                + "\n".join(f"[{i}] {p[:300]}" for i, p in enumerate(paras[:40])))
     try:
         cards = parse(data)
     except Exception as e:  # corrupt or non-docx input: python-docx raises several unrelated types

@@ -52,16 +52,16 @@ def _token() -> str:
                         "(uses your Tabroom account), or set TABROOM_USERNAME/TABROOM_PASSWORD.")
 
 
-def _get(path: str, **params) -> httpx.Response:
+def _get(endpoint: str, **params) -> httpx.Response:
     try:
-        r = httpx.get(f"{API}{path}", params=params, cookies={"caselist_token": _token()}, timeout=60)
+        r = httpx.get(f"{API}{endpoint}", params=params, cookies={"caselist_token": _token()}, timeout=60)
     except httpx.TransportError as e:
         raise CaselistError(f"Network problem reaching OpenCaselist ({type(e).__name__}). Try again.") from None
     if r.status_code == 401:
         TOKEN.unlink(missing_ok=True)
         raise CaselistError("OpenCaselist session expired. Run: uvx pf-debate-mcp login")
     if r.status_code >= 400:
-        raise CaselistError(f"OpenCaselist {path} -> {r.status_code}: {r.text[:200]}")
+        raise CaselistError(f"OpenCaselist {endpoint} -> {r.status_code}: {r.text[:200]}")
     return r
 
 
