@@ -25,10 +25,16 @@ def login(username: str, password: str) -> None:
                        timeout=30)
     except httpx.TransportError as e:
         raise CaselistError(f"Network problem reaching OpenCaselist ({type(e).__name__}).") from None
-    if r.status_code != 200 or "caselist_token" not in r.cookies:
-        raise CaselistError(f"Login failed ({r.status_code}): {r.text[:200]}")
+    token = r.cookies.get("caselist_token")
+    if not token and r.is_success:
+        try:
+            token = r.json().get("token")  # the API now returns 201 with the token in the body
+        except ValueError:
+            token = None
+    if not token:
+        raise CaselistError(f"Login failed ({r.status_code}). Check your Tabroom email and password.")
     HOME.mkdir(parents=True, exist_ok=True)
-    TOKEN.write_text(r.cookies["caselist_token"])
+    TOKEN.write_text(token)
     try:
         TOKEN.chmod(0o600)
     except OSError:
