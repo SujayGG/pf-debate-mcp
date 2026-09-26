@@ -26,7 +26,7 @@ from starlette.responses import JSONResponse, Response
 from . import library, llm, metrics, semantic, server, store
 from .server import mcp
 
-LOCAL_ONLY_TOOLS = ("caselist_search", "caselist_team", "caselist_download", "build_library")
+LOCAL_ONLY_TOOLS = ("caselist_search", "caselist_team", "caselist_entries", "caselist_download", "build_library")
 STARTED = time.time()
 LIMITS = {"default": 120, "llm": 20}  # requests per minute per client IP for the web app's /api/*
 _hits: dict[tuple[str, str], list[float]] = defaultdict(list)

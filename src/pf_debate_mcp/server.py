@@ -395,6 +395,19 @@ def caselist_team(school: str, team: str, caselist: str | None = None) -> dict:
 
 @mcp.tool()
 @observe
+def caselist_entries(entries: str, caselist: str | None = None) -> list[dict]:
+    """Scout a whole tournament field: match every entry to its caselist page in one call. entries: the CSV
+    Tabroom exports from a tournament's Entries/Field page (Institution,Location,Entry,Code,...), or one line
+    per team like "Plano West, Park & Jiang". Returns per team: disclosed or not, round count, recent
+    open-source doc paths (for caselist_download) and cite titles. Then follow pf-scout "Prep out a tournament"."""
+    try:
+        return cl.scout_entries(entries, caselist)
+    except cl.CaselistError as e:
+        raise ToolError(str(e)) from None
+
+
+@mcp.tool()
+@observe
 def caselist_download(path: str) -> str:
     """Download an open-source .docx from OpenCaselist (the 'opensource' path from caselist_team or a
     search 'download_path') and import its cards as cN ids you can read, analyze, re-cut or export."""
