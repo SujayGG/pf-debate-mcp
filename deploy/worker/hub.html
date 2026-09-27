@@ -229,7 +229,13 @@ function fmtDateRange(start, end, tz) {
   } catch (err) { return [start, end].filter(Boolean).join(" – "); }
 }
 function staleBanner(asOf) {
-  return '<p class="stale-banner">Tabroom isn't answering right now; showing data from ' + esc(fmtClock(asOf)) + ".</p>";
+  return '<p class="stale-banner">Tabroom is not answering right now; showing data from ' + esc(fmtClock(asOf)) + ".</p>";
+}
+function sourceBanner(d) {
+  return d && d.source === "web"
+    ? '<p class="stale-banner">Tabroom’s data feed is unavailable, so this comes from its public pairings pages: '
+      + "rounds, rooms and judges, but no win/loss results or start times.</p>"
+    : "";
 }
 function downState(e) {
   var msg = e.down ? "Tabroom isn't answering right now and we have no saved copy yet." : e.message;
@@ -389,6 +395,7 @@ async function renderTourn(tournId) {
     + '<p class="sub">' + esc([d.tourn.city, d.tourn.state].filter(Boolean).join(", "))
     + (d.tourn.start ? " &middot; " + esc(fmtDateRange(d.tourn.start, d.tourn.end, tz)) : "") + "</p>"
     + (body.stale ? staleBanner(body.asOf) : "")
+    + sourceBanner(d)
     + "</div>"
     + '<section class="sec"><h2>Events</h2><div id="events" class="stack"></div></section>'
     + '<section class="sec"><h2>Schedule</h2><div id="sched" class="stack"></div></section>';
@@ -499,6 +506,7 @@ function renderEntryBody(res) {
     + '<button type="button" class="btn" data-follow-toggle aria-pressed="' + followed + '">' + (followed ? "Following" : "Follow") + "</button>"
     + '<button type="button" class="btn" data-share>Share</button></div>'
     + (res.stale ? staleBanner(res.asOf) : '<p class="updated" aria-live="polite">Updated ' + esc(fmtClock(res.asOf)) + "</p>")
+    + sourceBanner(d)
     + "</div>"
     + nowCardHtml(d) + recordCardHtml(d)
     + '<section class="sec"><h2>Will I break?</h2><div id="breakCard" class="card"><p class="sub">Loading&hellip;</p></div></section>'
@@ -525,19 +533,23 @@ function nowCardHtml(d) {
     + (r.opponent ? '<p class="now-opp">vs <strong>' + esc(r.opponent.code || "") + "</strong>" + (r.opponent.record ? " (" + esc(r.opponent.record) + ")" : "") + "</p>" : "")
     + (r.judges && r.judges.length ? '<p class="now-judges">Judge' + (r.judges.length > 1 ? "s" : "") + ": "
       + r.judges.map(function (j) { return esc(j.name) + (j.chair ? " (chair)" : ""); }).join(", ") + "</p>" : "");
-  return '<div class="card now"><div class="now-top"><span class="now-round">' + esc(roundLabel(r)) + "</span>" + badge + "</div>" + body + "</div>";
+  var latest = d.source === "web" ? '<p class="sub">Latest posted round</p>' : "";
+  return '<div class="card now">' + latest + '<div class="now-top"><span class="now-round">' + esc(roundLabel(r)) + "</span>" + badge + "</div>" + body + "</div>";
 }
 
 function recordCardHtml(d) {
   var rec = d.record;
-  var rows = d.rounds.filter(function (r) { return r.result || r.bye; }).map(function (r) {
+  var web = d.source === "web";
+  var rows = d.rounds.filter(function (r) { return r.result || r.bye || (web && r.opponent); }).map(function (r) {
     var res = r.bye ? "W" : (r.result || "");
     return "<li><span>" + esc(roundLabel(r)) + "</span><span>" + esc(r.side || "") + "</span><span>"
       + (r.bye ? "Bye" : (r.opponent ? esc(r.opponent.code) : "")) + '</span><span class="' + (res === "W" ? "ok" : res === "L" ? "bad" : "") + '">'
       + esc(res) + '</span><span class="sub">' + esc(r.ballots || "") + "</span></li>";
   }).join("");
   var elims = rec.elims && rec.elims.length ? '<p class="sub" style="margin-top:6px">' + esc(rec.elims.join(", ")) + "</p>" : "";
-  return '<section class="sec"><h2>Record</h2><div class="card"><p class="record-tally">' + rec.wins + "–" + rec.losses + "</p>" + elims
+  var tally = web ? '<p class="sub">Win/loss results aren’t available from Tabroom right now.</p>'
+    : '<p class="record-tally">' + rec.wins + "–" + rec.losses + "</p>";
+  return '<section class="sec"><h2>' + (web ? "Rounds" : "Record") + '</h2><div class="card">' + tally + elims
     + (rows ? '<ul class="round-list">' + rows + "</ul>" : '<p class="sub">No rounds completed yet.</p>') + "</div></section>";
 }
 
@@ -557,7 +569,7 @@ function fillBreakCard(d) {
         args.wins = b.state.wins.map(function (w) { return w.wins; });
         args.me = b.state.wins.findIndex(function (w) { return String(w.id) === String(entryCtx.entryId); });
         args.done = b.state.round - 1;
-      } else { args.myWins = b.myWins; args.done = b.done; }
+      } else if (d.source !== "web") { args.myWins = b.myWins; args.done = b.done; } // web: results unknown
       var outBox = $("breakOut"); outBox.innerHTML = '<p class="sub">Calculating&hellip;</p>';
       var go = function () { outBox.innerHTML = breakOutHtml(bm.simulate(args)); };
       if (window.requestIdleCallback) requestIdleCallback(go); else setTimeout(go, 0);
@@ -568,17 +580,25 @@ function fillBreakCard(d) {
 }
 
 function breakOutHtml(out) {
-  var chance = out.myChance != null ? Math.round(out.myChance * 100) + "%" : "n/a";
+  if (out.myChance == null) {
+    return '<p class="sub">Your results aren’t available, so here’s what each record needs.</p>'
+      + '<p class="sub">Safe at ' + esc(out.safe != null ? out.safe + " wins" : "no record") + ", bubble at "
+      + esc(out.bubble.length ? out.bubble.join(", ") : "none") + ".</p>" + barsHtml(out);
+  }
+  var chance = Math.round(out.myChance * 100) + "%";
   var safe = out.safe != null ? out.safe + " wins" : "no record clears safely";
   var bubble = out.bubble.length ? out.bubble.join(", ") : "none";
+  var bars = barsHtml(out);
+  return '<p class="break-chance">Chance to break: <strong>' + chance + "</strong></p>"
+    + '<p class="sub">Safe at ' + esc(String(safe)) + ", bubble at " + esc(bubble) + ".</p>" + bars;
+}
+function barsHtml(out) {
   var ks = Object.keys(out.byWins).map(Number).sort(function (a, b) { return a - b; });
   var bars = ks.map(function (k) {
     var p = out.byWins[k].p, pct = Math.round(p * 100);
     return '<div class="bar-row"><span>' + k + ' wins</span><div class="bar-track"><div class="bar-fill" style="width:' + pct + '%"></div></div><span>' + pct + "%</span></div>";
   }).join("");
-  return '<p class="break-chance">Chance to break: <strong>' + chance + "</strong></p>"
-    + '<p class="sub">Safe at ' + esc(String(safe)) + ", bubble at " + esc(bubble) + ".</p>"
-    + '<div class="bars">' + bars + "</div>";
+  return '<div class="bars">' + bars + "</div>";
 }
 
 /* context round for opponent/judge cards: the live round, else what's next, else the last one we played */
@@ -599,7 +619,10 @@ function oppJudgeHtml(d) {
   if (r.judges) {
     html += r.judges.map(function (j, i) {
       return '<div class="card" id="judgeCard' + i + '"><h3>Judge' + (j.chair ? " (chair)" : "") + '</h3><p><strong>' + esc(j.name) + '</strong></p><div id="judgeExt' + i + '">'
-        + (j.personId ? '<p class="sub">Checking paradigm&hellip;</p>' : '<p class="sub">No paradigm link available.</p>') + "</div></div>";
+        + (j.personId ? '<p class="sub">Checking paradigm&hellip;</p>'
+          : j.judgeId ? '<p class="sub"><a href="https://www.tabroom.com/index/tourn/postings/judge.mhtml?judge_id=' + encodeURIComponent(j.judgeId)
+            + '&tourn_id=' + encodeURIComponent(entryCtx.tournId) + '" target="_blank" rel="noopener">Judge’s page on Tabroom</a> (paradigm link there).</p>'
+          : '<p class="sub">No paradigm link available.</p>') + "</div></div>";
     }).join("");
   }
   return html + "</section>";

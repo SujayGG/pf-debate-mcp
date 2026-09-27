@@ -2,7 +2,9 @@
 // hub page uses. Shapes follow the indexcards source (api/controllers/pages/invite/schematController.js and
 // api/services/results/entryRecords.js). Mapping lives only here, so a Tabroom schema change breaks one file.
 
-export const API = "https://api.tabroom.com/v1";
+export const API = "https://api.tabroom.com/v1"; // Tabroom v4 API (beta.tabroom.com uses it); can be down
+export const LEGACY = "https://masonapi.tabroom.com/v1"; // older API: only public tournament listings
+export const WEB = "https://www.tabroom.com"; // classic site: pairings pages are public (no login)
 const UA = "pf-debate hub (+https://debate.peshcompsci.org/about)";
 const PRELIMS = new Set(["prelim", "highlow", "highhigh", "snaked_prelim", "snakedPrelim"]);
 
@@ -111,7 +113,7 @@ export function entryView({ schedule, field, schematics, records, entryId, abbr 
       row.opponent = opp ? { id: opp.id, code: opp.code, record: opp.record ?? null } : null;
       row.judges = Object.values(sec.Judges || {}).map((j) => ({
         name: `${j.first || ""} ${j.last || ""}`.trim() || "(judge names hidden)", personId: j.paradigm || null,
-        chair: !!j.chair }));
+        judgeId: j.judgeId || null, chair: !!j.chair }));
       row.recordBefore = mine.record ?? null;
       if (row.prelim && Object.values(sch.Sections).every((s) => Object.values(s.Entries || {})
         .every((e) => typeof e.wins === "number"))) {
@@ -147,4 +149,119 @@ export function entryView({ schedule, field, schematics, records, entryId, abbr 
     break: { field: field?.entries.length || null, prelims: prelims.length, done: wins + losses, myWins: wins,
              state: latestState },
   };
+}
+
+// ---- Fallback when the v4 API is down: the older API (listings) and classic public pages (pairings) ----------
+// Classic pages give tournament name/location, every posted round, and each round's pairings (flight, room, both
+// teams with Pro first, judges, bracket). Records and results need a login there, so fallback views have none.
+
+/** GET a legacy-API path: JSON or throws TabroomDown. */
+export async function legacyGet(path, fetchImpl = fetch) {
+  let res;
+  try {
+    res = await fetchImpl(LEGACY + path, { headers: { accept: "application/json", "user-agent": UA },
+                                           signal: AbortSignal.timeout(8000) });
+  } catch (e) {
+    throw new TabroomDown(`Tabroom unreachable (${e.name})`);
+  }
+  if (!res.ok || !(res.headers.get("content-type") || "").includes("json")) {
+    throw new TabroomDown(`Tabroom answered ${res.status}`);
+  }
+  return res.json();
+}
+
+/** Classic page: {html} or {redirect} (logins and the postings index redirect); throws TabroomDown. */
+export async function webGet(path, fetchImpl = fetch) {
+  let res;
+  try {
+    res = await fetchImpl(WEB + path, { headers: { accept: "text/html", "user-agent": UA }, redirect: "manual",
+                                        signal: AbortSignal.timeout(8000) });
+  } catch (e) {
+    throw new TabroomDown(`Tabroom unreachable (${e.name})`);
+  }
+  if (res.status >= 300 && res.status < 400) return { redirect: res.headers.get("location") || "" };
+  if (!res.ok) throw new TabroomDown(`Tabroom answered ${res.status}`);
+  return { html: await res.text() };
+}
+
+const ENTITIES = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", mdash: "—", ndash: "–", rsquo: "’" };
+export function text(s) {
+  return String(s).replace(/<[^>]+>/g, " ")
+    .replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (m, e) => e[0] === "#"
+      ? String.fromCodePoint(e[1].toLowerCase() === "x" ? parseInt(e.slice(2), 16) : Number(e.slice(1)))
+      : ENTITIES[e.toLowerCase()] ?? m)
+    .replace(/\s+/g, " ").trim();
+}
+
+export function mapLegacyUpcoming(list, now = Date.now()) {
+  const day = (iso, tz) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: tz || "UTC" });
+  return (Array.isArray(list) ? list : [])
+    .filter((t) => t.id && t.name && new Date(t.end || t.start).getTime() >= now - 86400000)
+    .sort((a, b) => new Date(a.start) - new Date(b.start))
+    .map((t) => {
+      const [s, e] = [day(t.start, t.tz), day(t.end || t.start, t.tz)];
+      return { id: t.id, name: t.name, city: t.location || "", state: t.state || "",
+               dates: s === e ? s : `${s} – ${e}`, modes: t.online ? "Online" : t.hybrid ? "Hybrid" : "In Person",
+               events: "" };
+    });
+}
+
+/** Round page -> tournament header + every posted round in the sidebar. */
+export function parsePostings(html) {
+  const h2 = html.match(/<h2[^>]*>([\s\S]*?)<\/h2>/);
+  const h5 = [...html.matchAll(/<h5[^>]*>([\s\S]*?)<\/h5>/g)].map((m) => text(m[1])).find((t) => t.includes("—"));
+  const loc = (h5 || "").split("—")[1]?.trim() || "";
+  const [city, region = ""] = loc.split(",").map((x) => x.trim());
+  const rounds = new Map();
+  for (const m of html.matchAll(/round\.mhtml\?tourn_id=\d+&(?:amp;)?round_id=(\d+)"\s*>([\s\S]*?)<\/a>/g)) {
+    const label = text(m[2]);
+    const [abbr, ...rest] = label.split(" ");
+    if (!rounds.has(m[1]) && abbr && rest.length) rounds.set(m[1], { roundId: Number(m[1]), abbr, label: rest.join(" ") });
+  }
+  return { name: h2 ? text(h2[1]) : null, city: city || "", state: region.split("/")[0] || "", rounds: [...rounds.values()] };
+}
+
+/** Schedule-shaped rounds from the sidebar (no start times on classic pages). */
+export function webSchedule(postings) {
+  const n = {};
+  return postings.rounds.map((r) => ({
+    id: r.roundId, name: (n[r.abbr] = (n[r.abbr] || 0) + 1), label: r.label, published: true, start: null,
+    type: /^round \d+$/i.test(r.label) ? "prelim" : "elim", event: { id: null, abbr: r.abbr, name: r.abbr, type: null },
+  }));
+}
+
+/** Round page pairings table -> the schematic shape entryView reads (Entries "1" = first/Pro column). */
+export function parseRoundPage(html) {
+  const table = html.match(/<table id="\d+">([\s\S]*?)<\/table>/);
+  if (!table) return null;
+  const heads = [...table[1].matchAll(/<th[^>]*>([\s\S]*?)<\/th>/g)].map((m) => text(m[1]).toLowerCase());
+  const hasFlight = heads.includes("flight");
+  const hasBracket = heads.includes("bracket");
+  const Sections = {};
+  let i = 0;
+  for (const row of table[1].matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/g)) {
+    const entries = [...row[1].matchAll(/entry_id=(\d+)"\s*>([\s\S]*?)<\/a>/g)].map((m) => ({ id: Number(m[1]), code: text(m[2]) }));
+    if (!entries.length) continue;
+    const cells = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1]);
+    const Judges = {};
+    for (const m of row[1].matchAll(/judge_id=(\d+)[^"]*"\s*>([\s\S]*?)<\/a>/g)) {
+      const [last, first = ""] = text(m[2]).split(",").map((x) => x.trim());
+      Judges[m[1]] = { first, last, judgeId: Number(m[1]) };
+    }
+    const bracket = hasBracket ? Number(text(cells[cells.length - 1])) : NaN;
+    Sections[++i] = {
+      Room: { name: text(cells[hasFlight ? 1 : 0] || "") || null }, flight: hasFlight ? Number(text(cells[0])) || null : null,
+      bracket: Number.isFinite(bracket) ? bracket : null, bye: entries.length < 2 ? 1 : 0,
+      Entries: Object.fromEntries(entries.map((e, k) => [String(k + 1), e])), Judges,
+    };
+  }
+  const label = [...html.matchAll(/<h4[^>]*>([\s\S]*?)<\/h4>/g)].map((m) => text(m[1])).find((t) => t !== "Schematics");
+  return { label: label ? label.split(" ").slice(1).join(" ") : null, Sections };
+}
+
+/** Field from a round's pairings (classic entry lists need a login). */
+export function fieldFromRound(schematic, abbr) {
+  const entries = Object.values(schematic?.Sections || {}).flatMap((s) => Object.values(s.Entries))
+    .map((e) => ({ id: e.id, name: e.code, code: e.code, school: "", students: [] }));
+  return { event: { id: null, name: abbr, abbr }, entries };
 }

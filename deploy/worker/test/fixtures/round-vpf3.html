@@ -1,0 +1,2463 @@
+
+
+	<!DOCTYPE html>
+
+	<meta
+		http-equiv = "Content-Type"
+		content    = "text/html; charset=UTF-8"
+	/>
+	<meta
+		name    = "viewport"
+		content = "width=device-width, initial-scale=1"
+	>
+
+	<meta http-equiv="content-language" content="en" />
+
+	<html>
+
+		<head>
+			<link rel="stylesheet" type="text/css" href="/lib/css/reset.css">
+			<link rel="stylesheet" type="text/css" href="/lib/css/jqueryui.css">
+			<link rel="stylesheet" type="text/css" href="/lib/css/fonts/fonts.css">
+			<link rel="stylesheet" type="text/css" href="/lib/css/select2.min.css">
+			<link rel="stylesheet" type="text/css" href="/lib/css/uniform.css">
+			<link rel="stylesheet" type="text/css" href="/lib/css/alertify.min.css">
+			<link rel="stylesheet" type="text/css" href="/lib/css/alertify-bootstrap.min.css">
+
+				<link
+					rel  = "stylesheet"
+					type = "text/css"
+					href = "/lib/css/tabroom.v44.css"
+				>
+
+
+
+			<title>
+				VPF R3 
+				
+				Tabroom.com
+			</title>
+				<script
+					type = "text/javascript"
+					src  = "/lib/javascript/tabroom.v48.min.js"
+				></script>
+
+			<script>
+
+				function toggleMobileMenu() {
+					$(`.menu`).toggleClass('nothidden');
+					fixVisual();
+				}
+
+				function toggleSearch() {
+					$(`#mobileSearch`).toggleClass('hidden');
+					$(`input#searchtext`).focus();
+				}
+
+				$(".alert").on('click', function(e){
+					e.preventDefault();
+					var href = this.href;
+					alertify.confirm("Are you sure?", function (e) {
+						if (e) {
+							window.location.href = href;
+						}
+					});
+				});
+
+
+					function updateLastAccess() {
+						return;
+					}
+
+				$(document).ready(function(){
+
+					updateLastAccess();
+
+					// put the focus on the first editable element.
+					$('*:input:enabled:visible:not(.notfirst):not(input[type="submit"]):first').focus();
+					$('.starthere').focus();
+
+					// Control-s gives you the search box
+					Mousetrap.bind('mod+s', function(e) {
+						$('#searchtext').focus();
+						return false;
+					});
+
+					// Sets up the little arrows to close and open the sidebars
+					$(".menu").prepend("<div class='shade openshade fa fa-forward'></div>");
+					$("#content").prepend("<div class='hidden shade closedshade fa fa-backward'></div>");
+
+					$(".shade").click( function() {
+						$(".menu").toggleClass("hidden");
+						$(".closedshade").toggleClass("hidden");
+						$(".main").toggleClass("mainfull");
+						$(".tabad_carousel").toggleClass("tabad_full");
+					});
+
+					// Scales any text to the size of its parent element that
+					// wants that
+					$(".scalefont").bigtext();
+
+					// adds zebra striping to elements, and resizes inputs to
+					// the size of their parent
+					fixVisual();
+				});
+			// Display notifications
+
+			$(document).ready(function() {
+
+				alertify.set('notifier','position', 'bottom-left');
+				alertify.defaults.transition   = "slide";
+				alertify.defaults.theme.ok     = "btn btn-primary";
+				alertify.defaults.theme.cancel = "btn btn-danger";
+				alertify.defaults.theme.input  = "form-control";
+
+
+
+
+
+
+
+
+
+			});
+			</script>
+
+				<script>
+					var _paq = window._paq = window._paq || [];
+					/* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+					_paq.push(['trackPageView']);
+					_paq.push(['enableLinkTracking']);
+					(function() {
+						var u="https://analytics.speechanddebate.org/";
+						_paq.push(['setTrackerUrl', u+'matomo.php']);
+						_paq.push(['setSiteId', '4']);
+						var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+						g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+					})();
+				</script>
+
+			<meta
+				property = "og:image"
+				content  = "http://www.tabroom.com/lib/images/nsda-blue.png"
+			/>
+
+			<link
+				rel         = "manifest"
+				href        = "/lib/javascript/manifest.json"
+				crossorigin = "use-credentials"
+			/>
+
+	</head>
+	<body>
+		<div id="overlay">
+			<div id="header">
+				<div id="headerarch">
+					<span
+						id    = "logo"
+						title = "New year, new me... new Tabroom?  Stay tuned!"
+					>
+						<a
+							tabindex = "-1"
+							href     = "/index/index.mhtml"
+						>
+							<img
+								src = "/lib/images/tabroom-logo.png"
+								alt = "Tabroom.com by the National Speech and Debate Association"
+							>
+						</a>
+					</span>
+
+					<span id="toprow" class="grow">
+
+
+							<a
+								tabindex = "-1"
+								class    = "fa fa-2x fa-search loginicons smallsearch"
+								onClick  = "toggleSearch();";
+								id       = "mobile_search"
+								alt      = "Search Tournaments"
+								title    = "Search Tournaments"
+							></a>
+
+							
+	<span class="login">
+
+		<a
+			class   = "login-window"
+			onClick = "showLoginBox();"
+		>Login</a>
+
+		<div id="login-box" class="login-popup">
+
+			<div class="padbottomless marbottomless flexrow">
+				<h6 class="fivesixths semibold leftalign padleft">
+					Login to Tabroom
+				</h6>
+
+				<a
+					class="sixth close fa fa-times-circle fa-lg bluetext marright"
+					onClick = "hideLoginBox();"
+				>
+				</a>
+			</div>
+
+			<form
+				name   = "login"
+				action = "/user/login/login_save.mhtml"
+				method = "post"
+				class  = "signin"
+			>
+
+				<input
+					type  = "hidden"
+					name  = "salt"
+					value = "x5cCihym"
+				>
+
+				<input
+					type  = "hidden"
+					name  = "sha"
+					value = "$6$x5cCihym$qOuCGfaggj1ojt9hyRyqV/9XgNkVZgBStamMEOAAPxIfhK3zePpn6BiOlGEJMvR3kZqxazt0p3yIryuTXxpk00"
+				>
+
+				<div class="full centeralign flexrow martop">
+					<span class="ninetenths marno padvertno padleft padright">
+						<input
+							type         = "text"
+							id           = "username"
+							name         = "username"
+							class        = "noresize full"
+							value        = ""
+							autocomplete = "on"
+							placeholder  = "Email address"
+						>
+					</span>
+				</div>
+
+				<div class="full centeralign flexrow">
+					<span class="ninetenths marno padvertno padleft padright">
+						<input
+							id          = "password"
+							name        = "password"
+							class       = "noresize full"
+							type        = "password"
+							value       = ""
+							placeholder = "Password"
+						>
+					</span>
+				</div>
+
+				<div class="full centeralign flexrow">
+					<span class="ninetenths marno padvertno padleft padright">
+						<input
+							type  = "submit"
+							value = "Login"
+							class = "noresize full"
+						>
+					</span>
+				</div>
+			</form>
+
+			<div class="full rightalign flexrow">
+				<a
+					class = "redtext italic martopmore rightalign full martopmore link-underline biggish"
+					href  = "/user/login/forgot.mhtml"
+
+				>Forgot your Password?</a>
+			</div>
+
+		</div>
+	</span>
+
+	<span class="signup">
+		<a tabindex="-1" href="/user/login/new_user.mhtml">
+			Sign Up
+		</a>
+	</span>
+
+
+
+
+							<span class='searchfilter'>
+
+								<form
+									action = "/index/search.mhtml"
+									method = "post"
+								>
+
+								<input
+									type  = "hidden"
+									name  = "tourn_id"
+									value = ""
+								>
+
+								<input
+									type  = "hidden"
+									name  = "caller"
+									value = "/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524276"
+								>
+									<span
+										id    = "search"
+										class = "full flexrow"
+										title = "Search for tournaments"
+									>
+										<span class='grow fourfifths nospace padright'>
+											<input
+												type           = "text"
+												name           = "search"
+												placeholder    = "SEARCH TOURNAMENTS"
+												autocomplete   = "off"
+												autocorrect    = "off"
+												autocapitalize = "off"
+												spellcheck     = "false"
+												id             = "searchtext"
+												class          = "notfirst noresize"
+												tabindex       = "-1"
+											>
+										</span>
+										<span class="centeralign">
+											<button
+												type  = "submit"
+												class = "fa fa-2x fa-search loginicons smallsearch"
+											> </button>
+										</span>
+									</span>
+								</form>
+							</span>
+
+
+						<span id="helpbutton" title="Tabroom Help" class="padleft">
+							<a
+								tabindex = "-1"
+								href     = "http://docs.tabroom.com"
+								target   = "_blank"
+								class    = "fa fa-question-circle fa-2x"
+							>
+							</a>
+						</span>
+
+					</span>
+				</div>
+
+
+
+					<div
+						class = "centeralign hidden"
+						id    = "mobileSearch"
+					>
+						<div class="ninetenths leftalign">
+
+							<form
+								action="/index/search.mhtml"
+								method="post"
+							>
+
+							<input
+								type  = "hidden"
+								name  = "caller"
+								value = "/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524276"
+							>
+								<span
+									id    = "mobile_searchbox"
+									class = "full flexrow blueborder"
+									title = "Search for tournaments"
+								>
+									<span class='grow fourfifths padright'>
+										<input
+											type           = "text"
+											name           = "search"
+											placeholder    = "Search tournaments by name"
+											autocomplete   = "off"
+											autocorrect    = "off"
+											autocapitalize = "off"
+											spellcheck     = "false"
+											id             = "mobile_searchtext"
+											class          = "notfirst"
+											tabindex       = "-1"
+										>
+									</span>
+									<span class="centeralign nospace">
+										<button
+											type  = "submit"
+											class = "fa fa-2x fa-search loginicons smallsearch"
+										>
+										</button>
+									</span>
+								</span>
+							</form>
+						</div>
+					</div>
+
+				<div class="flexrow menuright">
+
+				<span id="menus">
+						
+	<ul id="nav">
+
+		<li class="top">
+			<a
+				class = "centeralign top_link"
+				href  = "/"
+				title = "Home"
+			>
+				<span class="down text">
+					Home
+				</span>
+				<span class="down icon fa fa-home"></span>
+			</a>
+		</li>
+
+		<li class="top">
+
+			<a
+				class = "centeralign top_link"
+				href  = "/index/circuits.mhtml"
+				title = "Circuits"
+			>
+				<span class="down text">
+					Circuits
+				</span>
+				<span class="down icon fa fa-circle-o-notch"></span>
+			</a>
+		</li>
+
+		<li class="top">
+			<a
+				class = "centeralign top_link"
+				href  = "/index/results/"
+				title = "Results"
+			>
+				<span class="down text">
+					Results
+				</span>
+				<span class="down icon fa fa-trophy"></span>
+			</a>
+		</li>
+
+		<li class="top">
+			<a
+				class = "centeralign top_link"
+				href  = "/index/paradigm.mhtml"
+				title = "Results"
+			>
+				<span class="down text">
+					Paradigms
+				</span>
+				<span class="down icon fa fa-gavel"></span>
+			</a>
+		</li>
+
+		<li class="top">
+			<a
+				class = "centeralign top_link"
+				href  = "/index/help.mhtml"
+				title = "Help"
+			>
+				<span class="down text">
+					Help
+				</span>
+				<span class="down icon fa fa-info"></span>
+			</a>
+		</li>
+
+		<li class="top">
+			<a
+				class = "centeralign top_link"
+				href  = "/index/about.mhtml"
+				title = "About"
+			>
+				<span class="down text">
+					About
+				</span>
+				<span class="down icon fa fa-book"></span>
+			</a>
+		</li>
+
+	</ul>
+
+
+				</span>
+
+				<span class="hamburger">
+					<a
+						class="menuburger fa fa-xl fa-bars"
+						onClick="toggleMobileMenu();"
+					></a>
+				</span>
+
+				</div>
+
+			</div>
+
+
+
+	<div id="wrapper">
+		<div id="content">
+			
+	
+	<script>
+
+		function showEvent() {
+			const eventId = $(`#eventSelector`).val();
+			$(`.eventListing`).addClass('hidden');
+			if (eventId) {
+				$(`#${eventId}`).removeClass('hidden');
+			}
+		}
+
+		$(document).ready( () => {
+			showEvent();
+		});
+	</script>
+
+	<div class="menu">
+
+		<div class="sidenote">
+
+			<h4>Schematics</h4>
+
+			<div class="even full centeralign">
+				<select
+					name     = "eventSelector"
+					id       = "eventSelector"
+					onchange = 'showEvent();'
+				>
+					<option value=""></option>
+						<option value="382274"
+							
+						>Congress</option>
+						<option value="382278"
+							
+						>Novice Congress</option>
+						<option value="391554"
+							
+						>Novice CX</option>
+						<option value="382280"
+							
+						>Novice LD</option>
+						<option value="382281"
+							
+						>Novice PF</option>
+						<option value="382286"
+							
+						>Varsity Lincoln Douglas</option>
+						<option value="382287"
+							
+						>Varsity Policy</option>
+						<option value="382288"
+							selected="selected"
+						>Varsity Public Forum</option>
+						<option value="382275"
+							
+						>Domestic Extemp (DX)</option>
+						<option value="394583"
+							
+						>Dramtic Interp</option>
+						<option value="382368"
+							
+						>Duo Interpretation</option>
+						<option value="382367"
+							
+						>Humorous Interp</option>
+						<option value="382276"
+							
+						>Informative Speaking</option>
+						<option value="382277"
+							
+						>International Extemp (IX)</option>
+						<option value="382279"
+							
+						>Novice Extemp</option>
+						<option value="382282"
+							
+						>Original Oratory</option>
+						<option value="382283"
+							
+						>Poetry</option>
+						<option value="382284"
+							
+						>Program Oral Interp</option>
+						<option value="382285"
+							
+						>Prose</option>
+				</select>
+			</div>
+
+				<div class="padleft blueborderleft eventListing hidden" id="382274">
+
+
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524215"
+							>
+								CD
+								Prelims
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524216"
+							>
+								CD
+								Semis
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524217"
+							>
+								CD
+								Super
+							</a>
+
+
+				</div>
+				<div class="padleft blueborderleft eventListing hidden" id="382278">
+
+
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524230"
+							>
+								NCD
+								Round 1
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524231"
+							>
+								NCD
+								Super
+							</a>
+
+
+				</div>
+				<div class="padleft blueborderleft eventListing hidden" id="391554">
+
+						<a
+							class = "blue full nowrap padleft"
+							href  = "/index/tourn/results/bracket.mhtml?tourn_id=40176&result_id=460833">
+							NCX
+							Bracket
+						</a>
+
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1569832"
+							>
+								NCX
+								Round 1
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1569833"
+							>
+								NCX
+								Round 2
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1569834"
+							>
+								NCX
+								Round 3
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1569836"
+							>
+								NCX
+								LD Semis
+							</a>
+
+
+				</div>
+				<div class="padleft blueborderleft eventListing hidden" id="382280">
+
+						<a
+							class = "blue full nowrap padleft"
+							href  = "/index/tourn/results/bracket.mhtml?tourn_id=40176&result_id=460891">
+							NLD
+							Bracket
+						</a>
+
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524237"
+							>
+								NLD
+								Round 1
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524238"
+							>
+								NLD
+								Round 2
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524239"
+							>
+								NLD
+								Round 3
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524240"
+							>
+								NLD
+								LD Quarters  Partial
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524241"
+							>
+								NLD
+								LD Semis
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524243"
+							>
+								NLD
+								LD Finals
+							</a>
+
+
+				</div>
+				<div class="padleft blueborderleft eventListing hidden" id="382281">
+
+						<a
+							class = "blue full nowrap padleft"
+							href  = "/index/tourn/results/bracket.mhtml?tourn_id=40176&result_id=460839">
+							NPF
+							Bracket
+						</a>
+
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524244"
+							>
+								NPF
+								Round 1
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524245"
+							>
+								NPF
+								Round 2
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524246"
+							>
+								NPF
+								Round 3
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524248"
+							>
+								NPF
+								PF Semis
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524249"
+							>
+								NPF
+								PF Finals
+							</a>
+
+
+				</div>
+				<div class="padleft blueborderleft eventListing hidden" id="382286">
+
+						<a
+							class = "blue full nowrap padleft"
+							href  = "/index/tourn/results/bracket.mhtml?tourn_id=40176&result_id=460870">
+							VLD
+							Bracket
+						</a>
+
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524263"
+							>
+								VLD
+								Round 1
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524264"
+							>
+								VLD
+								Round 2
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524265"
+							>
+								VLD
+								Round 3
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524266"
+							>
+								VLD
+								LD Quarters
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524267"
+							>
+								VLD
+								LD Semis
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524268"
+							>
+								VLD
+								LD Finals
+							</a>
+
+
+				</div>
+				<div class="padleft blueborderleft eventListing hidden" id="382287">
+
+						<a
+							class = "blue full nowrap padleft"
+							href  = "/index/tourn/results/bracket.mhtml?tourn_id=40176&result_id=460834">
+							VCX
+							Bracket
+						</a>
+
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524269"
+							>
+								VCX
+								Round 1
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524270"
+							>
+								VCX
+								Round 2
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524271"
+							>
+								VCX
+								Round 3
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524272"
+							>
+								VCX
+								CX Semis
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524273"
+							>
+								VCX
+								CX Finals
+							</a>
+
+
+				</div>
+				<div class="padleft blueborderleft eventListing hidden" id="382288">
+
+						<a
+							class = "blue full nowrap padleft"
+							href  = "/index/tourn/results/bracket.mhtml?tourn_id=40176&result_id=460885">
+							VPF
+							Bracket
+						</a>
+
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524274"
+							>
+								VPF
+								Round 1
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524275"
+							>
+								VPF
+								Round 2
+							</a>
+							<a
+								class="dkblue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524276"
+							>
+								VPF
+								Round 3
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524277"
+							>
+								VPF
+								PF Q
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524278"
+							>
+								VPF
+								PF S
+							</a>
+
+
+				</div>
+				<div class="padleft blueborderleft eventListing hidden" id="382275">
+
+
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524218"
+							>
+								DX
+								Round 1
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524219"
+							>
+								DX
+								Round 2
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524220"
+							>
+								DX
+								SEMIS
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524221"
+							>
+								DX
+								FINAL
+							</a>
+
+
+				</div>
+				<div class="padleft blueborderleft eventListing hidden" id="394583">
+
+
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1569829"
+							>
+								DI
+								IE Set B Ronud 1
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1569830"
+							>
+								DI
+								IE Set B Round 2
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1569831"
+							>
+								DI
+								Final
+							</a>
+
+
+				</div>
+				<div class="padleft blueborderleft eventListing hidden" id="382368">
+
+
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524622"
+							>
+								DUO
+								Round 1
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524623"
+							>
+								DUO
+								Round 2
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524624"
+							>
+								DUO
+								Finals
+							</a>
+
+
+				</div>
+				<div class="padleft blueborderleft eventListing hidden" id="382367">
+
+
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524626"
+							>
+								HI
+								Round 1
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524627"
+							>
+								HI
+								Round 2
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524628"
+							>
+								HI
+								Finals
+							</a>
+
+
+				</div>
+				<div class="padleft blueborderleft eventListing hidden" id="382276">
+
+
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524222"
+							>
+								Info
+								Round 1
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524223"
+							>
+								Info
+								Round 2
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524224"
+							>
+								Info
+								Finals
+							</a>
+
+
+				</div>
+				<div class="padleft blueborderleft eventListing hidden" id="382277">
+
+
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524226"
+							>
+								IX
+								Round 1
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524227"
+							>
+								IX
+								Round 2
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524228"
+							>
+								IX
+								SEMIS
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524229"
+							>
+								IX
+								FINAL
+							</a>
+
+
+				</div>
+				<div class="padleft blueborderleft eventListing hidden" id="382279">
+
+
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524232"
+							>
+								NX
+								Round 1
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524233"
+							>
+								NX
+								Round 2
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524234"
+							>
+								NX
+								Finals
+							</a>
+
+
+				</div>
+				<div class="padleft blueborderleft eventListing hidden" id="382282">
+
+
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524250"
+							>
+								OO
+								Round 1
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524251"
+							>
+								OO
+								Round 2
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524252"
+							>
+								OO
+								SEMIS
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524253"
+							>
+								OO
+								FINAL
+							</a>
+
+
+				</div>
+				<div class="padleft blueborderleft eventListing hidden" id="382283">
+
+
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524254"
+							>
+								PO
+								IE Set A Round 1
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524255"
+							>
+								PO
+								IE Set A Round 2
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524256"
+							>
+								PO
+								FINAL
+							</a>
+
+
+				</div>
+				<div class="padleft blueborderleft eventListing hidden" id="382284">
+
+
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524257"
+							>
+								POI
+								IE Set B Ronud 1
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524258"
+							>
+								POI
+								IE Set B Round 2
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524259"
+							>
+								POI
+								Final
+							</a>
+
+
+				</div>
+				<div class="padleft blueborderleft eventListing hidden" id="382285">
+
+
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524260"
+							>
+								PR
+								IE Set B Ronud 1
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524261"
+							>
+								PR
+								IE Set B Ronud 2
+							</a>
+							<a
+								class="blue full nowrap padleft"
+								href="/index/tourn/postings/round.mhtml?tourn_id=40176&round_id=1524262"
+							>
+								PR
+								FINAL
+							</a>
+
+
+				</div>
+				<h5>Published Judge Pools</h5>
+				<div class="padleft blueborderleft">
+						<a
+							class="blue full"
+							href="jpool.mhtml?tourn_id=40176&jpool_id=133159"
+						>
+							Congress
+						</a>
+						<a
+							class="blue full"
+							href="jpool.mhtml?tourn_id=40176&jpool_id=133162"
+						>
+							Lincoln Douglas
+						</a>
+						<a
+							class="blue full"
+							href="jpool.mhtml?tourn_id=40176&jpool_id=133161"
+						>
+							Policy
+						</a>
+						<a
+							class="blue full"
+							href="jpool.mhtml?tourn_id=40176&jpool_id=133163"
+						>
+							Public Forum
+						</a>
+						<a
+							class="blue full"
+							href="jpool.mhtml?tourn_id=40176&jpool_id=133160"
+						>
+							Speech
+						</a>
+				</div>
+
+		</div>
+	</div>
+
+
+
+
+	<div class="main" title="debate 382288">
+
+		
+	<h2 class="centeralign marno">
+		Prosper Eagles TFA Tournament
+	</h2>
+
+	<h5 class="full centeralign marno">
+		2026
+		&mdash;
+		Prosper,
+		TX/US
+	</h5>
+
+
+
+
+        
+
+		<ul id="tabnav">
+
+			<li class="">
+				 <a href="/index/tourn/main.mhtml?tourn_id=40176"
+				 	>Invite</a>
+			</li>
+
+
+
+				<li class="">
+					 <a href="/index/tourn/fields.mhtml?tourn_id=40176"
+					 	>Entries</a>
+				</li>
+
+				<li class="
+				">
+					 <a href="/index/tourn/judges.mhtml?tourn_id=40176"
+					 	>Judges</a>
+				</li>
+
+
+				<li class="selected">
+					 <a href="/index/tourn/postings/index.mhtml?tourn_id=40176"
+					 	>Pairings</a>
+				</li>
+
+				<li class="">
+					 <a href="/index/tourn/updates/index.mhtml?tourn_id=40176"
+					 	>Live Updates</a>
+				</li>
+
+				<li class="">
+					 <a href="/index/tourn/results/index.mhtml?tourn_id=40176"
+					 >Results</a>
+				</li>
+
+
+		</ul>
+
+
+
+
+
+
+
+
+					
+	<div class="flexrow">
+
+		<span class="grow third">
+			<h4>VPF Round 3</h4>
+		</span>
+
+		<span class="semibold half">
+			<div
+				class = "nospace flexrow"
+				style = "justify-content: center;"
+			>
+				<span class='start half grow'>
+					<div class="full centeralign smallish ltborderbottom nospace padbottomless orangetext">
+						Rounds Start
+					</div>
+
+						<div class="flexrow nospace bluetext centeralign smallish">
+							<span class="grow twothirds padleft padright">
+								Sat 1:00 PM
+							</span>
+						</div>
+				</span>
+
+			</div>
+
+		</span>
+
+		<span
+			id    = "1524276_buttonarea"
+			class = "tenth rightalign"
+		></span>
+	</div>
+
+
+	
+
+	<script type="text/javascript">
+
+        $(document).ready(function() {
+
+			$("#1524276").tablesorter({
+				cssAsc              : "sortup",
+				cssDesc             : "sortdown",
+				cssHeader           : "sortable",
+				sortInitialOrder    : "desc",
+				ignoreCase          : true,
+				saveFileName        : "1524276.csv",
+				sortLocaleCompare   : true,
+				widgets             : ['zebra', 'columns', 'stickyHeaders', 'print', 'output', 'resizable'],
+				textExtraction      : "basic",
+				textAttribute       : 'data-text',
+				initialized         : function(table) {
+					$(".focushere").focus();
+				},
+				widgetOptions : {
+					columns          : [ "primary", "secondary", "tertiary" ],
+					print_rows       : "f",
+					print_columns    : "v",
+					print_now        : true,
+					print_styleSheet : "/lib/css/print.css",
+					output_saveRows      : "visible",
+					output_delivery      : "download",
+					output_saveFileName  : "Tabroom-1524276.csv",
+					resizable            : false,
+
+				}
+			});
+
+
+				var printButtonHTML = `
+					<button
+						id       = 'print_1524276'
+						tabindex = '-1'
+						class    = 'notfirst printbutton buttonwhite redtext fa fa-sm fa-print marleft'
+					>`;
+
+				var outputButtonHTML = `
+					<button
+						id       = 'output_1524276'
+						tabindex = '-1'
+						class    = 'notfirst printbutton buttonwhite greentext fa fa-sm fa-file-excel-o marleft'
+					>`;
+
+				if ( $("#1524276_buttonarea").length) {
+
+						$("#1524276_buttonarea").append(printButtonHTML);
+
+					$("#1524276_buttonarea").append(outputButtonHTML);
+
+				} else {
+
+					var beginButtonRow = "<span id='1524276_buttonarea' class='nospace half rightalign right'>";
+					var endButtonRow = "</span>";
+
+					$("#1524276")
+						.before(beginButtonRow+outputButtonHTML+printButtonHTML+endButtonRow);
+				}
+
+				$("#1524276_buttonarea").on(
+					'click',
+					'#print_1524276',
+					function() {
+						$("#1524276").trigger("printTable");
+						return false;
+					}
+				);
+
+				$("#1524276_buttonarea").on(
+					'click',
+					'#output_1524276',
+					function() {
+
+						$(".hiddencsv").addClass('yo');
+						$(".hide_fromcsv").addClass('hiddencsv');
+						$(".yo").removeClass('hiddencsv');
+
+						$(".hidden_fromcsv .hiddencsv .yo").promise().done( function() {
+							$("#1524276").trigger("outputTable");
+						});
+
+						$(".hide_fromcsv").removeClass('hiddencsv');
+						$(".yo").addClass('hiddencsv');
+						$(".hiddencsv").removeClass('yo');
+
+						return false;
+					}
+				);
+
+			$(`table.hasResizable`).on('resize', resizeTable);
+			resizeTable();
+		});
+
+		function resizeTable() {
+			$('table').trigger('applyWidgets');
+			$('table').trigger('update', [true]);
+		}
+
+	</script>
+
+
+	<table id="1524276">
+
+		<thead>
+
+		<tr class="yellowrow smallish padless">
+
+				<th class="centeralign ">
+					Flight
+				</th>
+
+			<th class="centeralign ">
+				Room
+			</th>
+
+
+				<th class="centeralign ">
+				</th>
+
+				<th class="centeralign ">
+				</th>
+
+
+				<th class="centeralign smallish">
+					Judging
+				</th>
+
+
+				<th class="centeralign">
+					Bracket
+				</th>
+
+		</tr>
+		</thead>
+
+		<tbody>
+				<tr class="smallish">
+
+
+						<td class="centeralign">
+							1
+						</td>
+
+					<td class="nospace">
+
+							<div class='flexrow flexwrap padleftless padrightless hover'>
+
+								1208
+
+								
+
+
+							</div>
+					</td>
+
+
+					<td class="nospace">
+
+
+								<a
+									class = "white smallish nospace padleft padright
+										
+									"
+									href  = "/index/tourn/postings/entry_record.mhtml?tourn_id=40176&entry_id=7437436"
+								>
+									Plano West Priscilla Yu & Maggie Cheng
+								</a>
+
+					</td>
+
+					<td class="nospace">
+
+
+								<a
+									class = "white smallish nospace padleft padright
+										
+									"
+									href  = "/index/tourn/postings/entry_record.mhtml?tourn_id=40176&entry_id=7437536"
+								>
+									Plano East Anvi Kankane & Aushmi Mozumdar
+								</a>
+
+					</td>
+<td>								<a
+									class = "full white smallish padtopless padbottomless padleft
+										
+									"
+									href  = "judge.mhtml?judge_id=2886743&tourn_id=40176"
+								>
+									
+									Mahajan, Kirty 
+								</a>
+						</td>
+
+
+						<td class="centeralign">
+							2
+						</td>
+				</tr>
+				<tr class="smallish">
+
+
+						<td class="centeralign">
+							2
+						</td>
+
+					<td class="nospace">
+
+							<div class='flexrow flexwrap padleftless padrightless hover'>
+
+								1208
+
+								
+
+
+							</div>
+					</td>
+
+
+					<td class="nospace">
+
+
+								<a
+									class = "white smallish nospace padleft padright
+										
+									"
+									href  = "/index/tourn/postings/entry_record.mhtml?tourn_id=40176&entry_id=7424486"
+								>
+									Jasper Gia Sarkar & Revanth Chadalawada
+								</a>
+
+					</td>
+
+					<td class="nospace">
+
+
+								<a
+									class = "white smallish nospace padleft padright
+										
+									"
+									href  = "/index/tourn/postings/entry_record.mhtml?tourn_id=40176&entry_id=7433612"
+								>
+									Plano East Dylan Tran & Collin Troung
+								</a>
+
+					</td>
+<td>								<a
+									class = "full white smallish padtopless padbottomless padleft
+										
+									"
+									href  = "judge.mhtml?judge_id=2886743&tourn_id=40176"
+								>
+									
+									Mahajan, Kirty 
+								</a>
+						</td>
+
+
+						<td class="centeralign">
+							1
+						</td>
+				</tr>
+				<tr class="smallish">
+
+
+						<td class="centeralign">
+							1
+						</td>
+
+					<td class="nospace">
+
+							<div class='flexrow flexwrap padleftless padrightless hover'>
+
+								1209
+
+								
+
+
+							</div>
+					</td>
+
+
+					<td class="nospace">
+
+
+								<a
+									class = "white smallish nospace padleft padright
+										
+									"
+									href  = "/index/tourn/postings/entry_record.mhtml?tourn_id=40176&entry_id=7442133"
+								>
+									Jasper Andrew Li & Aidan Zhang
+								</a>
+
+					</td>
+
+					<td class="nospace">
+
+
+								<a
+									class = "white smallish nospace padleft padright
+										
+									"
+									href  = "/index/tourn/postings/entry_record.mhtml?tourn_id=40176&entry_id=7417645"
+								>
+									Plano West Aashna Bhakkad & Sean Kim
+								</a>
+
+					</td>
+<td>								<a
+									class = "full white smallish padtopless padbottomless padleft
+										
+									"
+									href  = "judge.mhtml?judge_id=2880500&tourn_id=40176"
+								>
+									
+									Beideck, Bob 
+								</a>
+						</td>
+
+
+						<td class="centeralign">
+							2
+						</td>
+				</tr>
+				<tr class="smallish">
+
+
+						<td class="centeralign">
+							2
+						</td>
+
+					<td class="nospace">
+
+							<div class='flexrow flexwrap padleftless padrightless hover'>
+
+								1209
+
+								
+
+
+							</div>
+					</td>
+
+
+					<td class="nospace">
+
+
+								<a
+									class = "white smallish nospace padleft padright
+										
+									"
+									href  = "/index/tourn/postings/entry_record.mhtml?tourn_id=40176&entry_id=7411133"
+								>
+									Plano East Aleeza Aamir & Saanvi Agarwal
+								</a>
+
+					</td>
+
+					<td class="nospace">
+
+
+								<a
+									class = "white smallish nospace padleft padright
+										
+									"
+									href  = "/index/tourn/postings/entry_record.mhtml?tourn_id=40176&entry_id=7421353"
+								>
+									Richland Renesh Mulpuri & Anish Paruchuri
+								</a>
+
+					</td>
+<td>								<a
+									class = "full white smallish padtopless padbottomless padleft
+										
+									"
+									href  = "judge.mhtml?judge_id=2880500&tourn_id=40176"
+								>
+									
+									Beideck, Bob 
+								</a>
+						</td>
+
+
+						<td class="centeralign">
+							0
+						</td>
+				</tr>
+				<tr class="smallish">
+
+
+						<td class="centeralign">
+							1
+						</td>
+
+					<td class="nospace">
+
+							<div class='flexrow flexwrap padleftless padrightless hover'>
+
+								1211
+
+								
+
+
+							</div>
+					</td>
+
+
+					<td class="nospace">
+
+
+								<a
+									class = "white smallish nospace padleft padright
+										
+									"
+									href  = "/index/tourn/postings/entry_record.mhtml?tourn_id=40176&entry_id=7375444"
+								>
+									Richland Anshika Ravula & Divya Bhavanam
+								</a>
+
+					</td>
+
+					<td class="nospace">
+
+
+								<a
+									class = "white smallish nospace padleft padright
+										
+									"
+									href  = "/index/tourn/postings/entry_record.mhtml?tourn_id=40176&entry_id=7417657"
+								>
+									Plano West Carolyn Wang & Dan Xie
+								</a>
+
+					</td>
+<td>								<a
+									class = "full white smallish padtopless padbottomless padleft
+										
+									"
+									href  = "judge.mhtml?judge_id=2887928&tourn_id=40176"
+								>
+									
+									ADIL MURTHUZA KHAJA, FNU 
+								</a>
+						</td>
+
+
+						<td class="centeralign">
+							2
+						</td>
+				</tr>
+				<tr class="smallish">
+
+
+						<td class="centeralign">
+							1
+						</td>
+
+					<td class="nospace">
+
+							<div class='flexrow flexwrap padleftless padrightless hover'>
+
+								1212
+
+								
+
+
+							</div>
+					</td>
+
+
+					<td class="nospace">
+
+
+								<a
+									class = "white smallish nospace padleft padright
+										
+									"
+									href  = "/index/tourn/postings/entry_record.mhtml?tourn_id=40176&entry_id=7403134"
+								>
+									Wylie Dylan Do & Kevinn Maldonado
+								</a>
+
+					</td>
+
+					<td class="nospace">
+
+
+								<a
+									class = "white smallish nospace padleft padright
+										
+									"
+									href  = "/index/tourn/postings/entry_record.mhtml?tourn_id=40176&entry_id=7375445"
+								>
+									Richland Chaithanya Srikanth & Rinnah Kim
+								</a>
+
+					</td>
+<td>								<a
+									class = "full white smallish padtopless padbottomless padleft
+										
+									"
+									href  = "judge.mhtml?judge_id=2887492&tourn_id=40176"
+								>
+									
+									Xie, Xiaojian 
+								</a>
+						</td>
+
+
+						<td class="centeralign">
+							0
+						</td>
+				</tr>
+				<tr class="smallish">
+
+
+						<td class="centeralign">
+							1
+						</td>
+
+					<td class="nospace">
+
+							<div class='flexrow flexwrap padleftless padrightless hover'>
+
+								1213
+
+								
+
+
+							</div>
+					</td>
+
+
+					<td class="nospace">
+
+
+								<a
+									class = "white smallish nospace padleft padright
+										
+									"
+									href  = "/index/tourn/postings/entry_record.mhtml?tourn_id=40176&entry_id=7439417"
+								>
+									THEO Christian Maddie Nelson & Josiah Tsang
+								</a>
+
+					</td>
+
+					<td class="nospace">
+
+
+								<a
+									class = "white smallish nospace padleft padright
+										
+									"
+									href  = "/index/tourn/postings/entry_record.mhtml?tourn_id=40176&entry_id=7444886"
+								>
+									Plano West Jacob Yang & Jay Lee
+								</a>
+
+					</td>
+<td>								<a
+									class = "full white smallish padtopless padbottomless padleft
+										
+									"
+									href  = "judge.mhtml?judge_id=2888018&tourn_id=40176"
+								>
+									
+									Gupta, Deepak 
+								</a>
+						</td>
+
+
+						<td class="centeralign">
+							2
+						</td>
+				</tr>
+				<tr class="smallish">
+
+
+						<td class="centeralign">
+							2
+						</td>
+
+					<td class="nospace">
+
+							<div class='flexrow flexwrap padleftless padrightless hover'>
+
+								1213
+
+								
+
+
+							</div>
+					</td>
+
+
+					<td class="nospace">
+
+
+								<a
+									class = "white smallish nospace padleft padright
+										
+									"
+									href  = "/index/tourn/postings/entry_record.mhtml?tourn_id=40176&entry_id=7417649"
+								>
+									Plano West Ethan Park & Calvin Jiang
+								</a>
+
+					</td>
+
+					<td class="nospace">
+
+
+								<a
+									class = "white smallish nospace padleft padright
+										
+									"
+									href  = "/index/tourn/postings/entry_record.mhtml?tourn_id=40176&entry_id=7436235"
+								>
+									Wylie Nayan Jammulamadugu & Dhruvik Sanjeev Kuditikunta
+								</a>
+
+					</td>
+<td>								<a
+									class = "full white smallish padtopless padbottomless padleft
+										
+									"
+									href  = "judge.mhtml?judge_id=2888018&tourn_id=40176"
+								>
+									
+									Gupta, Deepak 
+								</a>
+						</td>
+
+
+						<td class="centeralign">
+							2
+						</td>
+				</tr>
+				<tr class="smallish">
+
+
+						<td class="centeralign">
+							1
+						</td>
+
+					<td class="nospace">
+
+							<div class='flexrow flexwrap padleftless padrightless hover'>
+
+								1230
+
+								
+
+
+							</div>
+					</td>
+
+
+					<td class="nospace">
+
+
+								<a
+									class = "white smallish nospace padleft padright
+										
+									"
+									href  = "/index/tourn/postings/entry_record.mhtml?tourn_id=40176&entry_id=7443384"
+								>
+									BASIS Plano Pragnya Jetti & Saisahasra Appala
+								</a>
+
+					</td>
+
+					<td class="nospace">
+
+
+								<a
+									class = "white smallish nospace padleft padright
+										
+									"
+									href  = "/index/tourn/postings/entry_record.mhtml?tourn_id=40176&entry_id=7429945"
+								>
+									THEO Christian Megan Schreck & Michael Conover
+								</a>
+
+					</td>
+<td>								<a
+									class = "full white smallish padtopless padbottomless padleft
+										
+									"
+									href  = "judge.mhtml?judge_id=2885237&tourn_id=40176"
+								>
+									
+									Chakravarty, Pavitra 
+								</a>
+						</td>
+
+
+						<td class="centeralign">
+							1
+						</td>
+				</tr>
+				<tr class="smallish">
+
+
+						<td class="centeralign">
+							1
+						</td>
+
+					<td class="nospace">
+
+							<div class='flexrow flexwrap padleftless padrightless hover'>
+
+								1231
+
+								
+
+
+							</div>
+					</td>
+
+
+					<td class="nospace">
+
+
+								<a
+									class = "white smallish nospace padleft padright
+										
+									"
+									href  = "/index/tourn/postings/entry_record.mhtml?tourn_id=40176&entry_id=7417653"
+								>
+									Plano West Dayan Shah & Raman Chakravarty
+								</a>
+
+					</td>
+
+					<td class="nospace">
+
+
+								<a
+									class = "white smallish nospace padleft padright
+										
+									"
+									href  = "/index/tourn/postings/entry_record.mhtml?tourn_id=40176&entry_id=7411961"
+								>
+									Plano East Aditi Gaddam & Marisa Galu
+								</a>
+
+					</td>
+<td>								<a
+									class = "full white smallish padtopless padbottomless padleft
+										
+									"
+									href  = "judge.mhtml?judge_id=2884979&tourn_id=40176"
+								>
+									
+									Armstrong, Zach 
+								</a>
+						</td>
+
+
+						<td class="centeralign">
+							2
+						</td>
+				</tr>
+				<tr class="smallish">
+
+
+						<td class="centeralign">
+							1
+						</td>
+
+					<td class="nospace">
+
+							<div class='flexrow flexwrap padleftless padrightless hover'>
+
+								1238
+
+								
+
+
+							</div>
+					</td>
+
+
+					<td class="nospace">
+
+
+								<a
+									class = "white smallish nospace padleft padright
+										
+									"
+									href  = "/index/tourn/postings/entry_record.mhtml?tourn_id=40176&entry_id=7443387"
+								>
+									BASIS Plano Yashraj Rao & Lucas Oleksyuk
+								</a>
+
+					</td>
+
+					<td class="nospace">
+
+
+								<a
+									class = "white smallish nospace padleft padright
+										
+									"
+									href  = "/index/tourn/postings/entry_record.mhtml?tourn_id=40176&entry_id=7421842"
+								>
+									Richland Annaya Javed & Venkata Suchith Nathani
+								</a>
+
+					</td>
+<td>								<a
+									class = "full white smallish padtopless padbottomless padleft
+										
+									"
+									href  = "judge.mhtml?judge_id=2887496&tourn_id=40176"
+								>
+									
+									Huston, David 
+								</a>
+						</td>
+
+
+						<td class="centeralign">
+							0
+						</td>
+				</tr>
+				<tr class="smallish">
+
+
+						<td class="centeralign">
+							1
+						</td>
+
+					<td class="nospace">
+							<div class="centeralign smallish greentext semibold padvertmore">
+								BYE
+							</div>
+					</td>
+
+
+					<td class="nospace">
+
+
+								<a
+									class = "white smallish nospace padleft padright
+										
+									"
+									href  = "/index/tourn/postings/entry_record.mhtml?tourn_id=40176&entry_id=7414940"
+								>
+									Plano East Katelyn Thai & Mishita Arunkumar
+								</a>
+
+					</td>
+
+					<td class="nospace">
+
+
+								<a
+									class = "white smallish nospace padleft padright
+										
+									"
+									href  = "/index/tourn/postings/entry_record.mhtml?tourn_id=40176&entry_id="
+								>
+									
+								</a>
+
+					</td>
+<td>						</td>
+
+
+						<td class="centeralign">
+							0
+						</td>
+				</tr>
+		</tbody>
+	</table>
+
+	<div class="full flexrow wrap martopless padtop italic smallish marbottom semibold">
+
+			<span class="full centeralign bluetext marbottom">
+				Rooms with <span class="inline marno fa fa-tiny buttonwhite greentext invert fa-map-o"></span>
+				icons are linked to maps
+			</span>
+
+			<span class="full rightalign greentext marbottom">
+				Flip for sides in all debates
+			</span>
+
+	</div>
+
+
+
+
+
+			<div class = "martopmore padtopmore bluebordertop full">
+				<p class="centeralign">
+						This round was powermatched high-low within brackets
+							 by seed
+				</p>
+
+				<p
+					class = "biggish semibold centeralign"
+					title = "the Nethmin Liyanage Experience"
+				>
+					Tiebreak Protocol for this round
+				</p>
+
+					<div class="full odd ltbordertop flexrow smallish">
+						<span class="eighth semibold padleft">
+							1
+						</span>
+						<span class="fourfifths padvert">
+							
+				Winloss
+				 from prelim round(s)
+			   
+
+
+						</span>
+					</div>
+					<div class="full odd ltbordertop flexrow smallish">
+						<span class="eighth semibold padleft">
+							2
+						</span>
+						<span class="fourfifths padvert">
+							
+				Points
+				 from prelim round(s)
+			   
+
+
+						</span>
+					</div>
+					<div class="full odd ltbordertop flexrow smallish">
+						<span class="eighth semibold padleft">
+							3
+						</span>
+						<span class="fourfifths padvert">
+							
+				Points
+				 from prelim round(s)
+			, except the 1 best &amp; worst   
+
+
+						</span>
+					</div>
+					<div class="full odd ltbordertop flexrow smallish">
+						<span class="eighth semibold padleft">
+							4
+						</span>
+						<span class="fourfifths padvert">
+							
+				Ranks
+				 from prelim round(s)
+			   
+
+
+						</span>
+					</div>
+					<div class="full odd ltbordertop flexrow smallish">
+						<span class="eighth semibold padleft">
+							5
+						</span>
+						<span class="fourfifths padvert">
+							
+				Opponents' avg seed
+				 from prelim round(s)
+			   
+
+
+						</span>
+					</div>
+					<div class="full odd ltbordertop flexrow smallish">
+						<span class="eighth semibold padleft">
+							6
+						</span>
+						<span class="fourfifths padvert">
+							
+				Opponents' avg points
+				 from prelim round(s)
+			   
+
+
+						</span>
+					</div>
+					<div class="full odd ltbordertop flexrow smallish">
+						<span class="eighth semibold padleft">
+							7
+						</span>
+						<span class="fourfifths padvert">
+							
+				Opponents' avg ranks
+				 from prelim round(s)
+			   
+
+
+						</span>
+					</div>
+					<div class="full odd ltbordertop flexrow smallish">
+						<span class="eighth semibold padleft">
+							8
+						</span>
+						<span class="fourfifths padvert">
+							
+				Ranks
+				 from all round(s)
+			, except the 1 best &amp; worst   
+
+
+						</span>
+					</div>
+					<div class="full odd ltbordertop flexrow smallish">
+						<span class="eighth semibold padleft">
+							9
+						</span>
+						<span class="fourfifths padvert">
+							
+				Coinflip
+				 from prelim round(s)
+			   
+
+
+						</span>
+					</div>
+			</div>
+
+	</div>
+
+
+		</div>
+	</div>
+
+			<div id="footer" class="flexrow top centeralign">
+
+				<span class="leftlinks half">
+					<a
+						tabindex = "-1"
+						href     = "https://www.speechanddebate.org/join"
+					>Join the NSDA</a>
+
+					<a
+						tabindex = "-1"
+						href     = "https://www.speechanddebate.org/mission"
+					>About</a>
+
+					<a
+						tabindex = "-1"
+						href     = "mailto:help@tabroom.com"
+					>Help</a>
+
+					<a
+						tabindex = "-1"
+						href     = "https://www.tabroom.com/index/about.mhtml"
+					>Contact</a>
+
+					<a
+						tabindex = "-1"
+						href     = "https://www.speechanddebate.org/privacy-policy"
+					>Privacy Policy</a>
+
+					<a
+						tabindex = "-1"
+						href     = "https://www.speechanddebate.org/terms-conditions"
+					>Terms</a>
+				</span>
+
+
+			</div>
+		</div>
+
+	</body>
+
+</html>
+
+
