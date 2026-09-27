@@ -234,10 +234,16 @@ function staleBanner(asOf) {
 function sourceBanner(d) {
   if (d && d.loginResults) return '<p class="updated">Results from your Tabroom login (via the hub helper).</p>';
   if (d && d.loginNote === "login") return '<p class="stale-banner">Log in to tabroom.com in this browser to see your results here.</p>';
-  return d && d.source === "web"
+  var helper = !d || !d.loginNote ? "" : d.loginNote === "helper:no-extension"
+    ? (helperVersion ? '<p class="sub">Hub helper v' + esc(helperVersion) + " is installed but didn’t answer. Reload it at chrome://extensions, then this page.</p>"
+       : '<p class="sub">Hub helper not detected. Install it (or reload it at chrome://extensions), then reload this page.</p>')
+    : d.loginNote === "helper:rejected"
+    ? '<p class="sub">Your hub helper is outdated (v' + esc(helperVersion || "?") + "). Click its reload button at chrome://extensions, then reload this page.</p>"
+    : '<p class="sub">Hub helper v' + esc(helperVersion || "?") + " error: " + esc(d.loginNote.slice(7)) + ".</p>";
+  return helper + (d && d.source === "web"
     ? '<p class="stale-banner">Tabroom’s data feed is unavailable, so this comes from its public pairings pages: '
       + "rounds, rooms and judges, but no win/loss results or start times.</p>"
-    : "";
+    : "");
 }
 function downState(e) {
   var msg = e.down ? "Tabroom isn't answering right now and we have no saved copy yet." : e.message;
@@ -504,9 +510,9 @@ function loginParsers() { return parseReady || (parseReady = import("/hub/parse.
 async function addLoginResults(d) {
   var res = await extReq("page", { path: "/index/tourn/postings/entry_record.mhtml?tourn_id=" + entryCtx.tournId
     + "&entry_id=" + entryCtx.entryId }, 10000);
-  if (!res.ok) { d.loginNote = res.error === "login" ? "login" : null; return !!d.loginNote; }
+  if (!res.ok) { d.loginNote = res.error === "login" ? "login" : "helper:" + (res.error || "no answer"); return true; }
   var rows = (await loginParsers()).parseEntryRecord(res.data);
-  if (!rows) return false;
+  if (!rows) { d.loginNote = "helper:the record page didn't have a results table"; return true; }
   rows.forEach(function (x) {
     var r = d.rounds.find(function (y) { return roundLabel(y) === x.label || y.label === x.label; });
     if (!r) return;
@@ -671,11 +677,12 @@ function oppJudgeHtml(d) {
 }
 
 /* ---------- Chrome extension bridge ---------- */
-var extPending = {}, extSeq = 0;
+var extPending = {}, extSeq = 0, helperVersion = null;
 window.addEventListener("message", function (e) {
   if (e.source !== window || e.origin !== location.origin) return;
   var msg = e.data;
   if (!msg || typeof msg !== "object") return;
+  if (msg.type === "pfhub-ready") helperVersion = msg.version || "?";
   if (msg.type === "pfhub-res" && extPending[msg.id]) { var cb = extPending[msg.id]; delete extPending[msg.id]; cb(msg); }
 });
 try { window.postMessage({ type: "pfhub-ping" }, location.origin); } catch (e) { /* no-op */ }
