@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "pf-debate hub helper",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Shows Tabroom paradigms, judge records and caselist disclosure on the pf-debate tournament hub, using your own logins. Nothing is sent to pf-debate's server.",
   "permissions": ["cookies"],
   "host_permissions": [

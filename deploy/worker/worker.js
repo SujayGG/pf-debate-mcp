@@ -16,6 +16,7 @@ import LANDING from "./landing.html";
 import APP from "./app.html";
 import HUB from "./hub.html";
 import BREAKMATH from "./hub/breakmath.js"; // served to browsers as-is (Text rule in wrangler.toml)
+import PARSE from "./hub/parse.js"; // login-page parsers, run in the browser on pages the helper extension fetched
 import { handleHub } from "./hub/routes.js";
 
 const HEALTH_TTL_MS = 60_000;
@@ -55,8 +56,9 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === "/app" || url.pathname === "/app/") return Response.redirect(new URL("/cards", url), 301);
-    if (url.pathname === "/hub/breakmath.js") {
-      return new Response(BREAKMATH, { headers: { "content-type": "text/javascript; charset=utf-8",
+    const script = { "/hub/breakmath.js": BREAKMATH, "/hub/parse.js": PARSE }[url.pathname];
+    if (script) {
+      return new Response(script, { headers: { "content-type": "text/javascript; charset=utf-8",
                                                    "cache-control": "public, max-age=300" } });
     }
     const hub = await handleHub(request, env, ctx);

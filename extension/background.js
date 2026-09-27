@@ -3,6 +3,13 @@
 const TABROOM = "https://api.tabroom.com/v1";
 const CASELIST = "https://api.opencaselist.com/v1";
 const HUB = "https://debate.peshcompsci.org";
+const WEB = "https://www.tabroom.com";
+// Classic Tabroom pages the hub may read with your session (records, judge pages, fields). Nothing else.
+const PAGES = [
+  /^\/index\/tourn\/postings\/entry_record\.mhtml\?(tourn_id=\d+&entry_id=\d+|entry_id=\d+&tourn_id=\d+)$/,
+  /^\/index\/tourn\/postings\/judge\.mhtml\?(judge_id=\d+&tourn_id=\d+|tourn_id=\d+&judge_id=\d+)$/,
+  /^\/index\/tourn\/fields\.mhtml\?tourn_id=\d+&event_id=\d+$/,
+];
 
 async function tabroomToken() {
   for (const url of ["https://www.tabroom.com", "https://api.tabroom.com"]) {
@@ -39,6 +46,14 @@ async function currentPf() {
 }
 
 const OPS = {
+  async page({ path }) {
+    const r = await fetch(WEB + path, { credentials: "include", headers: { accept: "text/html" } });
+    if (r.url.includes("/user/login")) throw new Error("login");
+    if (!r.ok) throw new Error(`Tabroom answered ${r.status}`);
+    const html = await r.text();
+    if (html.length > 3_000_000) throw new Error("page too large");
+    return html;
+  },
   async paradigm({ personId }) { return tabroom(`/rest/paradigms/${personId}`); },
   async judgeRecord({ personId }) { return tabroom(`/rest/paradigms/${personId}/record`); },
   async caselist({ q }) {
@@ -50,6 +65,7 @@ const OPS = {
 function valid(op, args) {
   if (!OPS[op] || typeof args !== "object" || !args) return false;
   if (op === "caselist") return typeof args.q === "string" && args.q.length > 0 && args.q.length <= 120;
+  if (op === "page") return typeof args.path === "string" && PAGES.some((re) => re.test(args.path));
   return Number.isInteger(args.personId) && args.personId > 0;
 }
 

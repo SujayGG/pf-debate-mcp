@@ -232,6 +232,8 @@ function staleBanner(asOf) {
   return '<p class="stale-banner">Tabroom is not answering right now; showing data from ' + esc(fmtClock(asOf)) + ".</p>";
 }
 function sourceBanner(d) {
+  if (d && d.loginResults) return '<p class="updated">Results from your Tabroom login (via the hub helper).</p>';
+  if (d && d.loginNote === "login") return '<p class="stale-banner">Log in to tabroom.com in this browser to see your results here.</p>';
   return d && d.source === "web"
     ? '<p class="stale-banner">Tabroom’s data feed is unavailable, so this comes from its public pairings pages: '
       + "rounds, rooms and judges, but no win/loss results or start times.</p>"
@@ -493,6 +495,34 @@ async function loadEntry(first) {
   }
   entryCtx.entryName = entryRes.data.entry.name || ("Entry " + entryCtx.entryId);
   renderEntryBody(entryRes);
+  if (entryRes.data.source === "web" && await addLoginResults(entryRes.data)) renderEntryBody(entryRes);
+}
+
+/* Logged-in Tabroom data through the hub helper (the viewer's own session; never sent to our server). */
+var parseReady = null;
+function loginParsers() { return parseReady || (parseReady = import("/hub/parse.js")); }
+async function addLoginResults(d) {
+  var res = await extReq("page", { path: "/index/tourn/postings/entry_record.mhtml?tourn_id=" + entryCtx.tournId
+    + "&entry_id=" + entryCtx.entryId }, 10000);
+  if (!res.ok) { d.loginNote = res.error === "login" ? "login" : null; return !!d.loginNote; }
+  var rows = (await loginParsers()).parseEntryRecord(res.data);
+  if (!rows) return false;
+  rows.forEach(function (x) {
+    var r = d.rounds.find(function (y) { return roundLabel(y) === x.label || y.label === x.label; });
+    if (!r) return;
+    r.result = x.result; r.ballots = x.ballots; r.speaks = x.speaks;
+    if (x.side) r.side = x.side;
+    if (x.opponent && !r.opponent) r.opponent = x.opponent;
+  });
+  var prelims = d.rounds.filter(function (r) { return r.prelim; });
+  d.record.wins = prelims.filter(function (r) { return r.result === "W"; }).length;
+  d.record.losses = prelims.filter(function (r) { return r.result === "L"; }).length;
+  d.record.elims = d.rounds.filter(function (r) { return !r.prelim && r.result; }).map(function (r) { return roundLabel(r) + " " + r.result; });
+  d.break.myWins = d.record.wins; d.break.done = d.record.wins + d.record.losses;
+  d.current = null; // results tell us which rounds are finished: "now" is the last paired round without one
+  for (var i = d.rounds.length - 1; i >= 0; i--) { var q = d.rounds[i]; if ((q.opponent || q.bye) && !q.result) { d.current = q; break; } }
+  d.loginResults = true;
+  return true;
 }
 
 function renderEntryBody(res) {
@@ -539,7 +569,7 @@ function nowCardHtml(d) {
 
 function recordCardHtml(d) {
   var rec = d.record;
-  var web = d.source === "web";
+  var web = d.source === "web" && !d.loginResults;
   var rows = d.rounds.filter(function (r) { return r.result || r.bye || (web && r.opponent); }).map(function (r) {
     var res = r.bye ? "W" : (r.result || "");
     return "<li><span>" + esc(roundLabel(r)) + "</span><span>" + esc(r.side || "") + "</span><span>"
@@ -557,7 +587,7 @@ function fillBreakCard(d) {
   var box = $("breakCard"), b = d.break;
   if (!b || !b.field || !b.prelims) { box.innerHTML = '<p class="sub">Not enough data yet to estimate the break.</p>'; return; }
   breakmathReady.then(function (bm) {
-    var defaultSize = bm.defaultBreak(b.field);
+    var defaultSize = breakFromElims(d) || bm.defaultBreak(b.field);
     box.innerHTML = '<label for="breakSize">Break size <span>(teams that clear)</span></label>'
       + '<input id="breakSize" class="field" type="number" min="2" value="' + defaultSize + '" style="margin-bottom:6px">'
       + '<div id="breakOut"><p class="sub">Calculating&hellip;</p></div>'
@@ -569,7 +599,7 @@ function fillBreakCard(d) {
         args.wins = b.state.wins.map(function (w) { return w.wins; });
         args.me = b.state.wins.findIndex(function (w) { return String(w.id) === String(entryCtx.entryId); });
         args.done = b.state.round - 1;
-      } else if (d.source !== "web") { args.myWins = b.myWins; args.done = b.done; } // web: results unknown
+      } else if (d.source !== "web" || d.loginResults) { args.myWins = b.myWins; args.done = b.done; } // else results unknown
       var outBox = $("breakOut"); outBox.innerHTML = '<p class="sub">Calculating&hellip;</p>';
       var go = function () { outBox.innerHTML = breakOutHtml(bm.simulate(args)); };
       if (window.requestIdleCallback) requestIdleCallback(go); else setTimeout(go, 0);
@@ -579,6 +609,18 @@ function fillBreakCard(d) {
   });
 }
 
+/* The first elim round's name tells the break size: octas 16, quarters 8, semis 4 (partial breaks: unknown). */
+function breakFromElims(d) {
+  var first = d.rounds.find(function (r) { return !r.prelim; });
+  var l = first ? String(first.label || "") : "";
+  if (!l || /partial/i.test(l)) return null;
+  if (/double|\bdo\b/i.test(l)) return 32;
+  if (/oct|\bo\b/i.test(l)) return 16;
+  if (/quar|\bq\b/i.test(l)) return 8;
+  if (/sem|\bs\b/i.test(l)) return 4;
+  if (/fin|\bf\b/i.test(l)) return 2;
+  return null;
+}
 function breakOutHtml(out) {
   if (out.myChance == null) {
     return '<p class="sub">Your results aren’t available, so here’s what each record needs.</p>'
@@ -696,6 +738,7 @@ async function fillExtCards(d) {
   }
   (r.judges || []).forEach(function (j, i) {
     var box = $("judgeExt" + i);
+    if (box && !j.personId && j.judgeId) fillJudgeFromPage(box, j);
     if (!box || !j.personId) return;
     extReq("paradigm", { personId: j.personId }).then(function (res) {
       if (res.ok) {
@@ -712,6 +755,24 @@ async function fillExtCards(d) {
       }
     });
   });
+}
+
+async function fillJudgeFromPage(box, j) {
+  var res = await extReq("page", { path: "/index/tourn/postings/judge.mhtml?judge_id=" + j.judgeId + "&tourn_id=" + entryCtx.tournId }, 10000);
+  if (!res.ok) {
+    if (res.error === "login") box.insertAdjacentHTML("beforeend", '<p class="sub">Log in to tabroom.com in this browser to see their record.</p>');
+    return;
+  }
+  var p = await loginParsers(), page = p.parseJudgePage(res.data), sum = p.judgeSummary(page.record);
+  var chips = paradigmChips(page.paradigm || "");
+  box.innerHTML = (page.school ? '<p class="sub">' + esc(page.school) + "</p>" : "")
+    + '<p class="sub">' + sum.rounds + " round" + (sum.rounds === 1 ? "" : "s") + " judged in the last year"
+    + (sum.tournaments ? " at " + sum.tournaments + " tournament" + (sum.tournaments === 1 ? "" : "s") : "")
+    + (sum.pfDecisions ? " &middot; PF votes: " + sum.pro + " Pro, " + sum.con + " Con" : "") + ".</p>"
+    + (chips.length ? '<p class="chips-row">' + chips.map(function (c) { return '<span class="chip-tag">' + esc(c) + "</span>"; }).join("")
+      + ' <span class="sub">(rough guide)</span></p>' : "")
+    + (page.paradigm ? '<details class="p-details"><summary>Paradigm</summary><p class="paradigm-text">' + esc(page.paradigm) + "</p></details>"
+      : '<p class="sub">No paradigm text on their judge page.</p>');
 }
 
 /* ---------- Break calculator page ---------- */

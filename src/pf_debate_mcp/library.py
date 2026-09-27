@@ -38,7 +38,7 @@ SOURCE_DB = HOME / "library.db"  # where from-source builds write
 POINTER = HOME / "current.txt"
 PRESETS = {  # (events, min_reads for ld/cx, since year)
     "quick": (["pf"], 5, 2014),
-    "full": (["pf", "openev", "ld", "cx"], 5, 2014),
+    "full": (["pf", "openev", "ld", "cx"], 2, 2014),  # v2: every PF card; LD/Policy read by 2+ teams
 }
 _build = {"running": False, "last": None}  # in-process background build (the build_library tool)
 
@@ -129,6 +129,7 @@ def build(events: list[str], min_reads: int, since: int, limit: int | None, log=
     duck = duckdb.connect()
     duck.execute("SET enable_progress_bar=false")
     duck.execute("SET threads=4")  # more parallel range requests trip Hugging Face's 429 limit
+    duck.execute("SET memory_limit='2GB'")  # the build shares the machine (it was once killed for memory)
     shards = _shards()
     inserted = con.execute("select count(*) from cards").fetchone()[0]
     for n, shard in enumerate(shards, 1):

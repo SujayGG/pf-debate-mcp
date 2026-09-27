@@ -26,5 +26,5 @@ crons = ["0 */12 * * *"]  # keep the free Space from sleeping (it sleeps after 4
 
 [[rules]]
 type = "Text"
-globs = ["**/*.html", "**/breakmath.js"]
+globs = ["**/*.html", "**/breakmath.js", "**/parse.js"]
 fallthrough = true

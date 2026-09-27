@@ -16,7 +16,7 @@ def main() -> None:
                    help="build from the raw OpenCaselist dataset instead of downloading (hours)")
     b.add_argument("--events", default="pf,openev,ld,cx",
                    help="from-source: comma list of pf, openev (camp files), ld, cx (policy). Default: all")
-    b.add_argument("--min-reads", type=int, default=5,
+    b.add_argument("--min-reads", type=int, default=2,
                    help="from-source: LD/Policy cards must have been read by at least this many teams")
     b.add_argument("--since", type=int, default=2014, help="from-source: skip caselists older than this year")
     b.add_argument("--limit", type=int, help="from-source: stop after N cards (for testing)")
