@@ -1,7 +1,7 @@
 {
   "name": "pf-debate",
   "version": "0.4.5",
-  "description": "Public Forum debate partner: PF knowledge and jargon, a 170k-card library (OpenCaselist), verbatim-verified card cutting, caselist scouting, and Verbatim .docx speech docs.",
+  "description": "Public Forum debate partner: PF knowledge and jargon, a 266k-card library (OpenCaselist), verbatim-verified card cutting, caselist scouting, and Verbatim .docx speech docs.",
   "author": { "name": "SujayGG" },
   "license": "MIT",
   "keywords": ["debate", "public-forum", "nsda", "cards", "mcp"],

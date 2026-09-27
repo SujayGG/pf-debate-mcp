@@ -12,7 +12,7 @@ It knows PF jargon, speech times, tactics, weighing and the standard impact chai
 
 ## Free web app (any age, no account)
 **https://debate.peshcompsci.org/app** runs entirely in your browser:
-- plain-English search of about 173k cut cards
+- plain-English search of about 266k cut cards
 - finding new papers and news
 - auto-suggested cuts with click-to-adjust highlighting and the verbatim check
 - a doc builder that exports to Word or Google Docs
@@ -37,7 +37,7 @@ All downloads are on the **[latest release page](https://github.com/SujayGG/pf-d
 2. Download **[pf-debate.mcpb](https://github.com/SujayGG/pf-debate-mcp/releases/latest/download/pf-debate.mcpb)**.
 3. Double-click the file (or drag it into Claude Desktop → Settings → Extensions), then click **Install**.
    - The Tabroom email and password fields are optional. They are only for OpenCaselist scouting, and Claude Desktop stores them securely.
-4. In a new chat, say: **"Build the quick card library."** This takes a few minutes, runs in the background, and gets about 6k PF cards. Then say **"build the full card library"** for about 170k cards, including the most-read Policy/LD impact cards (nuke war, econ, heg). That takes a few hours and about 0.8 GB, and it resumes if interrupted.
+4. In a new chat, say: **"Build the quick card library."** This takes a few minutes, runs in the background, and gets about 6k PF cards. Then say **"build the full card library"** for about 266k cards, including the most-read Policy/LD impact cards (nuke war, econ, heg). That takes a few hours and about 1.2 GB, and it resumes if interrupted.
 5. Start prepping. Speech docs are saved to `Documents/pf-debate/`.
 
 ### Claude.ai (web)
