@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pf-debate: tournament hub</title>
+<meta name="description" content="A free, phone-first tournament-day hub for Public Forum debaters: live pairings, opponents, judges, records and break odds. No account needed.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:,">
+<style>
+:root{
+  --paper:#fcfcfa; --card:#ffffff; --rule:#d6e2ef; --margin:#e6a3a8;
+  --ink:#15161c; --ink-2:#464957; --ink-3:#62667a;
+  --pen:#1d3fb8; --pen-bg:#e8edfc; --hl:#ffe94d; --hl-ink:#15140a;
+  --red:#b3232b; --red-bg:#fbe9ea; --green:#17703a; --green-bg:#e3f3e8; --amber-bg:#fff4c7;
+  --line:#dcdde3; --shadow:0 1px 0 #dcdde3, 0 6px 18px -10px rgba(21,22,28,.35);
+  --sans:system-ui,-apple-system,"Segoe UI Variable Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --serif:Charter,"Bitstream Charter","Iowan Old Style","Sitka Text",Cambria,Georgia,serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#11141c; --card:#191d28; --rule:#263047; --margin:#6a3439;
+  --ink:#eceef4; --ink-2:#b9bdcb; --ink-3:#969cb0;
+  --pen:#9db2ff; --pen-bg:#1f2a4d; --red:#ff9aa0; --red-bg:#3a1a1e; --green:#8ee0aa; --green-bg:#16331f; --amber-bg:#3a3313;
+  --line:#2c3243; --shadow:0 1px 0 #2c3243, 0 8px 20px -12px rgba(0,0,0,.8);
+}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 var(--sans);overflow-x:hidden}
+a{color:var(--pen);text-underline-offset:3px}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--pen);outline-offset:2px;border-radius:3px}
+.vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+.wrap{max-width:720px;margin:0 auto;padding:0 16px}
+
+/* header/footer */
+.top{border-bottom:1px solid var(--line);background:var(--card)}
+.top .wrap{display:flex;align-items:center;gap:8px 16px;flex-wrap:wrap;min-height:56px;padding-top:8px;padding-bottom:8px}
+.mark{font-weight:850;font-size:1.15rem;letter-spacing:-.02em;color:var(--ink);text-decoration:none;padding:8px 0;margin-right:auto}
+.mark b{background:var(--hl);color:var(--hl-ink);padding:0 .1em;margin-left:-.05em;border-radius:2px}
+.hub-nav{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:.86rem}
+.hub-nav a{color:var(--ink-2);text-decoration:none;font-weight:600;min-height:44px;display:inline-flex;align-items:center;padding:2px 2px}
+.hub-nav a:hover{color:var(--pen)}
+footer{border-top:1px solid var(--line);padding:18px 0 34px;font-size:.84rem;color:var(--ink-3)}
+footer p{margin:0 0 6px}
+main{display:block;padding:20px 0 60px}
+
+/* shared bits (same look as the card finder) */
+.sec{margin-top:26px}
+.sec h2{font-size:1.15rem;letter-spacing:-.01em;margin:0 0 10px}
+.sub{margin:0;color:var(--ink-2);font-size:.9rem}
+.stack{display:grid;gap:10px}
+.note{padding:12px 14px;border-radius:4px;background:var(--amber-bg);color:var(--ink);font-size:.92rem;margin:0}
+.err{padding:12px 14px;border-radius:4px;background:var(--red-bg);color:var(--red);border-left:4px solid var(--red);font-weight:600;margin:0}
+.ok{color:var(--green);font-weight:600}
+.bad{color:var(--red);font-weight:600}
+.field{width:100%;min-height:44px;padding:10px 12px;border:1.5px solid var(--ink-3);border-radius:6px;background:var(--paper);margin:4px 0 12px}
+.field:focus-visible{outline:3px solid var(--pen);outline-offset:1px;border-color:var(--pen)}
+label{display:block;font-weight:700;font-size:.9rem;margin:10px 0 2px}
+label span{font-weight:400;color:var(--ink-3)}
+.btn{min-height:44px;min-width:44px;padding:8px 14px;border:1.5px solid var(--ink);border-radius:6px;background:var(--card);font-weight:700;font-size:.92rem;color:inherit;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.btn:hover{background:var(--pen-bg)}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--card)}
+.go{min-height:48px;padding:10px 22px;border:2px solid var(--hl-ink);border-radius:6px;background:var(--hl);color:var(--hl-ink);font-weight:800;font-size:1.05rem;box-shadow:3px 3px 0 var(--hl-ink)}
+.go:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--hl-ink)}
+.go:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--hl-ink)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px;padding:0;list-style:none}
+.chip{min-height:44px;padding:6px 12px;border:1px dashed var(--ink-3);border-radius:22px;background:transparent;color:var(--ink-2);font-size:.88rem}
+.chip:hover{border-style:solid;border-color:var(--ink);color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--card);border-style:solid}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+
+/* ask box */
+.ask{background:var(--card);border:1px solid var(--line);border-radius:4px;box-shadow:var(--shadow);position:relative;overflow:hidden;padding:18px}
+.ask::before{content:"";position:absolute;inset:0 auto 0 18px;width:2px;background:var(--margin);opacity:.7}
+.ask h1{margin:0 0 12px 22px;font-size:clamp(1.4rem,6vw,2.1rem);line-height:1.1;letter-spacing:-.03em;font-weight:850}
+.ask form{margin-left:22px}
+
+/* generic card */
+.card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:14px 16px;box-shadow:var(--shadow);margin-bottom:10px}
+.card h3{margin:0 0 6px;font-size:1rem}
+.err-card{border-left:4px solid var(--red)}
+
+/* now card */
+.now{border:2px solid var(--ink)}
+.now-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+.now-round{font-weight:800;font-size:1.15rem}
+.badge{display:inline-flex;padding:4px 12px;border-radius:14px;font-weight:700;font-size:.82rem;flex:none}
+.badge-pro{background:var(--green-bg);color:var(--green)}
+.badge-con{background:var(--red-bg);color:var(--red)}
+.now-room{font-size:1.08rem;margin:4px 0;font-weight:600}
+.now-time{color:var(--ink-2);margin:2px 0}
+.now-opp{margin:8px 0 2px}
+.now-judges{font-size:.9rem;color:var(--ink-2);margin:2px 0 0}
+.now-status{font-size:1.1rem;font-weight:700;margin:0}
+.now-bye{font-weight:700;margin:0}
+.entry-toolbar{display:flex;gap:8px;margin:10px 0}
+.updated{font-size:.82rem;color:var(--ink-3);margin:8px 0 0}
+.stale-banner{background:var(--amber-bg);padding:8px 12px;border-radius:4px;font-size:.85rem;margin:8px 0 0}
+
+/* record */
+.record-tally{font-size:1.7rem;font-weight:800;margin:0 0 4px}
+.round-list{list-style:none;margin:10px 0 0;padding:0;border-top:1px solid var(--line)}
+.round-list li{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line);font-size:.88rem}
+.round-list li>span:first-child{font-weight:700;min-width:64px}
+
+/* break bars */
+.bars{display:grid;gap:6px;margin-top:10px}
+.bar-row{display:grid;grid-template-columns:60px 1fr 42px;align-items:center;gap:8px;font-size:.84rem}
+.bar-track{height:10px;background:var(--rule);border-radius:6px;overflow:hidden}
+.bar-fill{height:100%;background:var(--pen)}
+.break-chance{font-size:1.1rem;margin:0 0 4px}
+.break-chance strong{font-size:1.3rem}
+.break-note{margin-top:10px;font-size:.8rem}
+
+/* home lists */
+.tourn-card{display:block;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px 14px;text-decoration:none;color:inherit}
+.tc-name{font-weight:700}
+.tc-meta{font-size:.85rem;color:var(--ink-2);margin-top:2px}
+.follow-card{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.follow-link{color:inherit;text-decoration:none;display:grid;gap:2px;min-width:0}
+.follow-link strong{overflow-wrap:anywhere}
+
+/* tournament page */
+.tourn-head h1{margin:0 0 4px;font-size:clamp(1.3rem,5vw,1.8rem);letter-spacing:-.02em}
+.event-row{border-bottom:1px solid var(--line)}
+.event-toggle{width:100%;text-align:left;background:none;border:0;padding:12px 4px;min-height:44px;font-weight:700}
+.event-toggle:hover{color:var(--pen)}
+.caret{display:inline-block;transition:transform .15s;margin-right:6px;color:var(--ink-3)}
+[aria-expanded="true"] .caret{transform:rotate(90deg)}
+.event-field{padding:0 0 12px}
+.entry-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px dashed var(--line)}
+.entry-info{min-width:0;overflow-wrap:anywhere}
+.entry-acts{display:flex;gap:6px;flex:none}
+.sched-group{margin-bottom:10px}
+.sched-time{font-weight:700;font-size:.85rem;color:var(--ink-2);margin-bottom:4px}
+.sched-row{font-size:.9rem;padding:4px 0}
+.sched-abbr{font-weight:700}
+
+/* extension cards */
+.chips-row{margin:6px 0}
+.chip-tag{display:inline-block;background:var(--pen-bg);color:var(--pen);padding:3px 9px;border-radius:12px;font-size:.78rem;margin:0 6px 6px 0;font-weight:600}
+.paradigm-text{font-size:.85rem;color:var(--ink-2);white-space:pre-wrap;margin:8px 0 0}
+details.p-details summary{cursor:pointer;font-weight:600;font-size:.88rem;min-height:32px;display:flex;align-items:center}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="mark" href="/" data-nav>pf-<b>debate</b></a>
+    <nav class="hub-nav" aria-label="Hub navigation">
+      <a href="/break" data-nav>Break calculator</a>
+      <a href="/cards">Find &amp; cut cards</a>
+      <a href="/about">About</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap" id="app"></main>
+<p class="vh" id="live" aria-live="polite"></p>
+
+<footer>
+  <div class="wrap">
+    <p>pf-debate hub is free, unofficial, and not affiliated with Tabroom or the NSDA. Tournament data is cached briefly and can lag behind Tabroom.</p>
+    <p><a href="/cards">Find &amp; cut cards</a> &middot; <a href="/about">About &amp; AI connector setup</a></p>
+  </div>
+</footer>
+
+<script type="module">
+import { simulate, defaultBreak } from "/hub/breakmath.js";
+window.__breakmath = { simulate: simulate, defaultBreak: defaultBreak };
+document.dispatchEvent(new Event("breakmath-ready"));
+</script>
+
+<script>
+(function () {
+"use strict";
+
+function $(id) { return document.getElementById(id); }
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+}
+function say(msg) { var l = $("live"); if (l) l.textContent = msg; }
+
+var breakmathReady = new Promise(function (resolve) {
+  if (window.__breakmath) resolve(window.__breakmath);
+  else document.addEventListener("breakmath-ready", function () { resolve(window.__breakmath); }, { once: true });
+});
+
+/* ---------- API: every success body is {data, asOf, stale} ---------- */
+async function api(path) {
+  var res;
+  try { res = await fetch(path, { headers: { accept: "application/json" } }); }
+  catch (e) { var ne = new Error("Couldn't reach the server. Check your connection and try again."); ne.status = 0; throw ne; }
+  var body = null;
+  try { body = await res.json(); } catch (e) { /* non-JSON body */ }
+  if (!res.ok) {
+    var msg = (body && body.error) || ("Request failed (" + res.status + ").");
+    var err = new Error(msg); err.status = res.status; err.down = !!(body && body.down);
+    throw err;
+  }
+  return body;
+}
+
+/* ---------- time formatting ---------- */
+function fmtClock(ms) {
+  try { return new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date(ms)); }
+  catch (e) { return new Date(ms).toLocaleTimeString(); }
+}
+function fmtTimeTz(iso, tz) {
+  if (!iso) return "time TBD";
+  try { return new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit", timeZone: tz || undefined }).format(new Date(iso)); }
+  catch (e) { return new Date(iso).toLocaleTimeString(); }
+}
+function fmtDayTime(iso, tz) {
+  try { return new Intl.DateTimeFormat(undefined, { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: tz || undefined }).format(new Date(iso)); }
+  catch (e) { return iso; }
+}
+function fmtDateRange(start, end, tz) {
+  try {
+    var opts = { month: "short", day: "numeric", timeZone: tz || undefined };
+    var s = new Intl.DateTimeFormat(undefined, opts).format(new Date(start));
+    var e = new Intl.DateTimeFormat(undefined, opts).format(new Date(end));
+    return s === e ? s : s + "–" + e;
+  } catch (err) { return [start, end].filter(Boolean).join(" – "); }
+}
+function staleBanner(asOf) {
+  return '<p class="stale-banner">Tabroom isn't answering right now; showing data from ' + esc(fmtClock(asOf)) + ".</p>";
+}
+function downState(e) {
+  var msg = e.down ? "Tabroom isn't answering right now and we have no saved copy yet." : e.message;
+  return '<div class="card err-card"><p class="err">' + esc(msg) + "</p>"
+    + '<p class="sub" style="margin-top:8px">Retrying automatically every minute.</p>'
+    + '<div class="row"><button type="button" class="btn" data-retry>Try again now</button></div></div>';
+}
+
+/* ---------- Following (localStorage) ---------- */
+var FKEY = "pfhub-follow";
+function loadFollow() { try { var a = JSON.parse(localStorage.getItem(FKEY) || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+function saveFollow() { try { localStorage.setItem(FKEY, JSON.stringify(follow)); } catch (e) { /* private mode: session only */ } }
+var follow = loadFollow();
+function followIdx(tournId, abbr, entryId) {
+  for (var i = 0; i < follow.length; i++) {
+    var f = follow[i];
+    if (String(f.tournId) === String(tournId) && f.abbr === abbr && String(f.entryId) === String(entryId)) return i;
+  }
+  return -1;
+}
+
+/* ---------- router ---------- */
+function parseRoute(path) {
+  var m;
+  if (path === "/break") return { page: "break" };
+  if ((m = path.match(/^\/t\/(\d+)\/e\/([A-Za-z0-9]{1,12})\/entry\/(\d+)\/?$/))) return { page: "entry", tournId: m[1], abbr: m[2], entryId: m[3] };
+  if ((m = path.match(/^\/t\/(\d+)\/?$/))) return { page: "tourn", tournId: m[1] };
+  return { page: "home" };
+}
+function nav(path) { history.pushState(null, "", path); route(); }
+window.addEventListener("popstate", route);
+
+var refreshTimer = null;
+function stopAutoRefresh() { if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; } }
+
+function route() {
+  stopAutoRefresh();
+  var r = parseRoute(location.pathname);
+  if (r.page === "tourn") renderTourn(r.tournId);
+  else if (r.page === "entry") renderEntry(r.tournId, r.abbr, r.entryId);
+  else if (r.page === "break") renderBreak();
+  else renderHome();
+}
+
+/* ---------- Home ---------- */
+var upcomingData = [], activeState = null, filterText = "";
+
+function extractTournId(text) {
+  var m = /tourn_id=(\d+)/.exec(text || "");
+  if (m) return m[1];
+  m = /^\s*(\d{3,})\s*$/.exec(text || "");
+  return m ? m[1] : null;
+}
+
+async function renderHome() {
+  var app = $("app");
+  app.innerHTML =
+    '<section class="ask" aria-labelledby="homeH">'
+    + '<h1 id="homeH">Tournament day, made simple</h1>'
+    + '<form id="searchForm">'
+    + '<label for="q" class="vh">Tabroom link, tournament ID, or a name/city/state to search</label>'
+    + '<input id="q" class="field" type="search" placeholder="Tabroom link, tournament ID, or name/city/state" autocomplete="off" style="margin-bottom:8px">'
+    + '<button type="submit" class="go">Go</button>'
+    + "</form></section>"
+    + '<section class="sec" id="followSec" hidden><h2>Following</h2><div id="followList" class="stack"></div></section>'
+    + '<section class="sec"><h2>This weekend &amp; upcoming</h2><ul class="chips" id="chips" aria-label="Filter by state"></ul><div id="upcoming" class="stack"><p class="sub">Loading&hellip;</p></div></section>';
+
+  renderFollowing();
+
+  $("searchForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var v = $("q").value.trim(), id = extractTournId(v);
+    if (id) { nav("/t/" + id); return; }
+    filterText = v.toLowerCase(); renderUpcoming();
+  });
+  $("q").addEventListener("input", function () {
+    var v = $("q").value.trim();
+    if (extractTournId(v)) return;
+    filterText = v.toLowerCase(); renderUpcoming();
+  });
+
+  try {
+    var body = await api("/t/api/upcoming");
+    upcomingData = body.data || [];
+    renderChips(); renderUpcoming();
+  } catch (e) { $("upcoming").innerHTML = '<p class="err">' + esc(e.message) + "</p>"; }
+}
+
+function renderFollowing() {
+  var sec = $("followSec"), box = $("followList");
+  if (!sec || !follow.length) { if (sec) sec.hidden = true; return; }
+  sec.hidden = false;
+  box.innerHTML = follow.map(function (f, i) {
+    return '<div class="card follow-card">'
+      + '<a class="follow-link" href="/t/' + esc(f.tournId) + "/e/" + esc(f.abbr) + "/entry/" + esc(f.entryId) + '" data-nav>'
+      + "<strong>" + esc(f.entryName || ("Entry " + f.entryId)) + "</strong>"
+      + '<span class="sub">' + esc(f.tournName || "") + " &middot; " + esc(f.abbr) + "</span></a>"
+      + '<button type="button" class="btn" data-unfollow="' + i + '">Unfollow</button></div>';
+  }).join("");
+}
+
+function renderChips() {
+  var states = [];
+  upcomingData.forEach(function (t) { if (t.state && states.indexOf(t.state) < 0) states.push(t.state); });
+  states.sort();
+  $("chips").innerHTML = states.map(function (s) {
+    return '<li><button type="button" class="chip" data-state="' + esc(s) + '" aria-pressed="' + (activeState === s) + '">' + esc(s) + "</button></li>";
+  }).join("");
+}
+
+function renderUpcoming() {
+  var list = upcomingData.filter(function (t) {
+    if (activeState && t.state !== activeState) return false;
+    if (filterText) {
+      var hay = (t.name + " " + (t.city || "") + " " + (t.state || "")).toLowerCase();
+      if (hay.indexOf(filterText) === -1) return false;
+    }
+    return true;
+  });
+  var box = $("upcoming");
+  if (!box) return;
+  if (!list.length) { box.innerHTML = '<p class="sub">No tournaments matched.</p>'; return; }
+  box.innerHTML = list.map(function (t) {
+    return '<a class="tourn-card" href="/t/' + esc(t.id) + '" data-nav>'
+      + '<div class="tc-name">' + esc(t.name) + "</div>"
+      + '<div class="tc-meta">' + esc([t.city, t.state].filter(Boolean).join(", "))
+      + (t.dates ? " &middot; " + esc(t.dates) : "") + (t.modes ? " &middot; " + esc(t.modes) : "") + "</div></a>";
+  }).join("");
+}
+
+/* ---------- Tournament ---------- */
+var tournCache = {}, fieldCache = {}, currentTournId = null, currentTournName = "", currentEvents = [];
+
+function eventRank(e) {
+  if (/PF|public\s*forum/i.test((e.abbr || "") + " " + (e.name || ""))) return 0;
+  if (/debate/i.test(e.type || "")) return 1;
+  return 2;
+}
+function rankEvents(events) {
+  return events.slice().sort(function (a, b) { return eventRank(a) - eventRank(b) || (a.abbr || "").localeCompare(b.abbr || ""); });
+}
+
+async function renderTourn(tournId) {
+  var app = $("app");
+  app.innerHTML = '<p class="sub">Loading tournament&hellip;</p>';
+  var body;
+  try { body = await api("/t/api/tourn/" + encodeURIComponent(tournId)); }
+  catch (e) { app.innerHTML = downState(e); return; }
+  var d = body.data;
+  tournCache[tournId] = d;
+  currentTournId = tournId; currentTournName = d.tourn.name;
+  var tz = d.tourn.tz;
+  currentEvents = rankEvents(d.events || []);
+  app.innerHTML =
+    '<div class="tourn-head">'
+    + "<h1>" + esc(d.tourn.name) + "</h1>"
+    + '<p class="sub">' + esc([d.tourn.city, d.tourn.state].filter(Boolean).join(", "))
+    + (d.tourn.start ? " &middot; " + esc(fmtDateRange(d.tourn.start, d.tourn.end, tz)) : "") + "</p>"
+    + (body.stale ? staleBanner(body.asOf) : "")
+    + "</div>"
+    + '<section class="sec"><h2>Events</h2><div id="events" class="stack"></div></section>'
+    + '<section class="sec"><h2>Schedule</h2><div id="sched" class="stack"></div></section>';
+  renderEvents(tz);
+  renderSchedule(d.schedule || [], tz);
+}
+
+function renderEvents(tz) {
+  var box = $("events");
+  if (!currentEvents.length) { box.innerHTML = '<p class="sub">No events published yet.</p>'; return; }
+  box.innerHTML = currentEvents.map(function (ev, i) {
+    return '<div class="event-row">'
+      + '<button type="button" class="event-toggle" data-open-event="' + i + '" aria-expanded="false" aria-controls="ef' + i + '">'
+      + '<span class="caret" aria-hidden="true">&#9656;</span>' + esc(ev.abbr) + ' <span class="sub">' + esc(ev.name || "") + "</span></button>"
+      + '<div class="event-field" id="ef' + i + '" hidden></div></div>';
+  }).join("");
+}
+
+async function toggleEvent(btn) {
+  var i = +btn.getAttribute("data-open-event"), box = $("ef" + i);
+  var open = btn.getAttribute("aria-expanded") === "true";
+  btn.setAttribute("aria-expanded", String(!open)); box.hidden = open;
+  if (open || box.dataset.loaded) return;
+  var ev = currentEvents[i];
+  box.innerHTML = '<p class="sub">Loading field&hellip;</p>';
+  try {
+    var body = await api("/t/api/tourn/" + currentTournId + "/field/" + encodeURIComponent(ev.abbr));
+    var entries = body.data.entries || [];
+    fieldCache[ev.abbr] = entries;
+    box.innerHTML = entries.length ? entries.map(function (en) {
+      return '<div class="entry-row"><div class="entry-info"><strong>' + esc(en.name) + "</strong>"
+        + (en.code ? ' <span class="sub">(' + esc(en.code) + ")</span>" : "")
+        + '<div class="sub">' + esc(en.school || "") + (en.students && en.students.length ? " &middot; " + esc(en.students.join(", ")) : "") + "</div></div>"
+        + '<div class="entry-acts">'
+        + '<button type="button" class="btn" data-follow-abbr="' + esc(ev.abbr) + '" data-follow-entry="' + esc(en.id) + '">Follow</button>'
+        + '<a class="btn" href="/t/' + currentTournId + "/e/" + esc(ev.abbr) + "/entry/" + esc(en.id) + '" data-nav>Open</a>'
+        + "</div></div>";
+    }).join("") : '<p class="sub">No public field for this event.</p>';
+    box.dataset.loaded = "1";
+  } catch (e) { box.innerHTML = '<p class="err">' + esc(e.message) + "</p>"; }
+}
+
+function renderSchedule(schedule, tz) {
+  var box = $("sched");
+  if (!schedule.length) { box.innerHTML = '<p class="sub">No schedule yet.</p>'; return; }
+  var groups = {}, order = [];
+  schedule.forEach(function (r) {
+    var key = r.start || "unscheduled";
+    if (!groups[key]) { groups[key] = []; order.push(key); }
+    groups[key].push(r);
+  });
+  order.sort(function (a, b) {
+    if (a === "unscheduled") return 1; if (b === "unscheduled") return -1;
+    return new Date(a) - new Date(b);
+  });
+  box.innerHTML = order.map(function (key) {
+    var when = key === "unscheduled" ? "Time TBD" : fmtDayTime(key, tz);
+    return '<div class="sched-group"><div class="sched-time">' + esc(when) + "</div>"
+      + groups[key].map(function (r) {
+        return '<div class="sched-row"><span class="sched-abbr">' + esc((r.event && r.event.abbr) || "") + "</span> "
+          + esc(r.label || ("Round " + r.name))
+          + (r.published ? ' <span class="ok">posted</span>' : ' <span class="sub">not posted</span>') + "</div>";
+      }).join("") + "</div>";
+  }).join("");
+}
+
+/* ---------- Entry ---------- */
+var entryCtx = null;
+
+function roundLabel(r) { return r.label || ("Round " + r.name); }
+
+async function renderEntry(tournId, abbr, entryId) {
+  $("app").innerHTML = '<p class="sub">Loading&hellip;</p>';
+  entryCtx = { tournId: tournId, abbr: abbr, entryId: entryId, tz: undefined, tournName: "", entryName: "" };
+  await loadEntry(true);
+  refreshTimer = setInterval(function () { if (document.visibilityState === "visible") loadEntry(false); }, 60000);
+}
+
+async function loadEntry(first) {
+  var app = $("app");
+  var tournP = tournCache[entryCtx.tournId] ? Promise.resolve({ data: tournCache[entryCtx.tournId] })
+    : api("/t/api/tourn/" + entryCtx.tournId).catch(function () { return null; });
+  var entryRes = null, entryErr = null;
+  try {
+    entryRes = await api("/t/api/tourn/" + entryCtx.tournId + "/event/" + encodeURIComponent(entryCtx.abbr) + "/entry/" + entryCtx.entryId);
+  } catch (e) { entryErr = e; }
+  var tournRes = await tournP;
+  if (tournRes && tournRes.data) tournCache[entryCtx.tournId] = tournRes.data;
+  entryCtx.tz = tournRes && tournRes.data ? tournRes.data.tourn.tz : undefined;
+  entryCtx.tournName = tournRes && tournRes.data ? tournRes.data.tourn.name : "";
+
+  if (entryErr) {
+    if (first) app.innerHTML = downState(entryErr);
+    return; // a refresh tick that fails leaves the last good render up; the same timer retries in 60 s
+  }
+  entryCtx.entryName = entryRes.data.entry.name || ("Entry " + entryCtx.entryId);
+  renderEntryBody(entryRes);
+}
+
+function renderEntryBody(res) {
+  var d = res.data, followed = followIdx(entryCtx.tournId, entryCtx.abbr, entryCtx.entryId) >= 0;
+  $("app").innerHTML =
+    '<div class="entry-head">'
+    + '<p class="sub">' + esc(entryCtx.tournName) + " &middot; " + esc((d.event && d.event.abbr) || entryCtx.abbr) + "</p>"
+    + "<h1>" + esc(entryCtx.entryName) + "</h1>"
+    + (d.entry.school ? '<p class="sub">' + esc(d.entry.school) + "</p>" : "")
+    + '<div class="entry-toolbar">'
+    + '<button type="button" class="btn" data-follow-toggle aria-pressed="' + followed + '">' + (followed ? "Following" : "Follow") + "</button>"
+    + '<button type="button" class="btn" data-share>Share</button></div>'
+    + (res.stale ? staleBanner(res.asOf) : '<p class="updated" aria-live="polite">Updated ' + esc(fmtClock(res.asOf)) + "</p>")
+    + "</div>"
+    + nowCardHtml(d) + recordCardHtml(d)
+    + '<section class="sec"><h2>Will I break?</h2><div id="breakCard" class="card"><p class="sub">Loading&hellip;</p></div></section>'
+    + oppJudgeHtml(d);
+  fillBreakCard(d);
+  fillExtCards(d);
+}
+
+function nowCardHtml(d) {
+  var r = d.current;
+  if (!r) {
+    if (d.next) {
+      var when = d.next.start ? " (scheduled " + esc(fmtTimeTz(d.next.start, entryCtx.tz)) + ")" : "";
+      return '<div class="card now"><p class="now-status">' + esc(roundLabel(d.next)) + " not paired yet" + when + "</p></div>";
+    }
+    return '<div class="card now"><p class="now-status">Done for the day.</p></div>';
+  }
+  var isPro = r.side === "Pro" || r.side === "Aff", isCon = r.side === "Con" || r.side === "Neg";
+  var badge = r.side ? '<span class="badge ' + (isPro ? "badge-pro" : isCon ? "badge-con" : "") + '">' + esc(r.side) + "</span>" : "";
+  var body;
+  if (r.bye) body = '<p class="now-bye">Bye this round.</p>';
+  else body = '<p class="now-room">' + (r.roomUrl ? '<a href="' + esc(r.roomUrl) + '" target="_blank" rel="noopener">' + esc(r.room || "Room TBD") + "</a>" : esc(r.room || "Room TBD")) + "</p>"
+    + '<p class="now-time">' + esc(fmtTimeTz(r.start, entryCtx.tz)) + "</p>"
+    + (r.opponent ? '<p class="now-opp">vs <strong>' + esc(r.opponent.code || "") + "</strong>" + (r.opponent.record ? " (" + esc(r.opponent.record) + ")" : "") + "</p>" : "")
+    + (r.judges && r.judges.length ? '<p class="now-judges">Judge' + (r.judges.length > 1 ? "s" : "") + ": "
+      + r.judges.map(function (j) { return esc(j.name) + (j.chair ? " (chair)" : ""); }).join(", ") + "</p>" : "");
+  return '<div class="card now"><div class="now-top"><span class="now-round">' + esc(roundLabel(r)) + "</span>" + badge + "</div>" + body + "</div>";
+}
+
+function recordCardHtml(d) {
+  var rec = d.record;
+  var rows = d.rounds.filter(function (r) { return r.result || r.bye; }).map(function (r) {
+    var res = r.bye ? "W" : (r.result || "");
+    return "<li><span>" + esc(roundLabel(r)) + "</span><span>" + esc(r.side || "") + "</span><span>"
+      + (r.bye ? "Bye" : (r.opponent ? esc(r.opponent.code) : "")) + '</span><span class="' + (res === "W" ? "ok" : res === "L" ? "bad" : "") + '">'
+      + esc(res) + '</span><span class="sub">' + esc(r.ballots || "") + "</span></li>";
+  }).join("");
+  var elims = rec.elims && rec.elims.length ? '<p class="sub" style="margin-top:6px">' + esc(rec.elims.join(", ")) + "</p>" : "";
+  return '<section class="sec"><h2>Record</h2><div class="card"><p class="record-tally">' + rec.wins + "–" + rec.losses + "</p>" + elims
+    + (rows ? '<ul class="round-list">' + rows + "</ul>" : '<p class="sub">No rounds completed yet.</p>') + "</div></section>";
+}
+
+function fillBreakCard(d) {
+  var box = $("breakCard"), b = d.break;
+  if (!b || !b.field || !b.prelims) { box.innerHTML = '<p class="sub">Not enough data yet to estimate the break.</p>'; return; }
+  breakmathReady.then(function (bm) {
+    var defaultSize = bm.defaultBreak(b.field);
+    box.innerHTML = '<label for="breakSize">Break size <span>(teams that clear)</span></label>'
+      + '<input id="breakSize" class="field" type="number" min="2" value="' + defaultSize + '" style="margin-bottom:6px">'
+      + '<div id="breakOut"><p class="sub">Calculating&hellip;</p></div>'
+      + '<p class="sub break-note">Estimate: random tiebreaks (we can’t see speaks), coin-flip rounds.</p>';
+    function run() {
+      var size = Math.max(2, +$("breakSize").value || defaultSize);
+      var args = { field: b.field, prelims: b.prelims, breakSize: size, sims: 10000, seed: 1 };
+      if (b.state) {
+        args.wins = b.state.wins.map(function (w) { return w.wins; });
+        args.me = b.state.wins.findIndex(function (w) { return String(w.id) === String(entryCtx.entryId); });
+        args.done = b.state.round - 1;
+      } else { args.myWins = b.myWins; args.done = b.done; }
+      var outBox = $("breakOut"); outBox.innerHTML = '<p class="sub">Calculating&hellip;</p>';
+      var go = function () { outBox.innerHTML = breakOutHtml(bm.simulate(args)); };
+      if (window.requestIdleCallback) requestIdleCallback(go); else setTimeout(go, 0);
+    }
+    $("breakSize").addEventListener("input", run);
+    run();
+  });
+}
+
+function breakOutHtml(out) {
+  var chance = out.myChance != null ? Math.round(out.myChance * 100) + "%" : "n/a";
+  var safe = out.safe != null ? out.safe + " wins" : "no record clears safely";
+  var bubble = out.bubble.length ? out.bubble.join(", ") : "none";
+  var ks = Object.keys(out.byWins).map(Number).sort(function (a, b) { return a - b; });
+  var bars = ks.map(function (k) {
+    var p = out.byWins[k].p, pct = Math.round(p * 100);
+    return '<div class="bar-row"><span>' + k + ' wins</span><div class="bar-track"><div class="bar-fill" style="width:' + pct + '%"></div></div><span>' + pct + "%</span></div>";
+  }).join("");
+  return '<p class="break-chance">Chance to break: <strong>' + chance + "</strong></p>"
+    + '<p class="sub">Safe at ' + esc(String(safe)) + ", bubble at " + esc(bubble) + ".</p>"
+    + '<div class="bars">' + bars + "</div>";
+}
+
+/* context round for opponent/judge cards: the live round, else what's next, else the last one we played */
+function contextRound(d) {
+  return d.current || d.next || d.rounds.slice().reverse().find(function (r) { return r.opponent; }) || null;
+}
+
+function oppJudgeHtml(d) {
+  var r = contextRound(d);
+  var html = '<section class="sec"><h2>Opponent &amp; judges</h2>';
+  if (!r || (!r.opponent && !(r.judges && r.judges.length))) {
+    return html + '<div class="card"><p class="sub">No opponent or judges assigned yet.</p></div></section>';
+  }
+  if (r.opponent) {
+    html += '<div class="card" id="oppCard"><h3>Opponent</h3><p><strong>' + esc(r.opponent.code || "") + "</strong>"
+      + (r.opponent.record ? " &middot; " + esc(r.opponent.record) : "") + '</p><div id="oppExt"><p class="sub">Checking opencaselist&hellip;</p></div></div>';
+  }
+  if (r.judges) {
+    html += r.judges.map(function (j, i) {
+      return '<div class="card" id="judgeCard' + i + '"><h3>Judge' + (j.chair ? " (chair)" : "") + '</h3><p><strong>' + esc(j.name) + '</strong></p><div id="judgeExt' + i + '">'
+        + (j.personId ? '<p class="sub">Checking paradigm&hellip;</p>' : '<p class="sub">No paradigm link available.</p>') + "</div></div>";
+    }).join("");
+  }
+  return html + "</section>";
+}
+
+/* ---------- Chrome extension bridge ---------- */
+var extPending = {}, extSeq = 0;
+window.addEventListener("message", function (e) {
+  if (e.source !== window || e.origin !== location.origin) return;
+  var msg = e.data;
+  if (!msg || typeof msg !== "object") return;
+  if (msg.type === "pfhub-res" && extPending[msg.id]) { var cb = extPending[msg.id]; delete extPending[msg.id]; cb(msg); }
+});
+try { window.postMessage({ type: "pfhub-ping" }, location.origin); } catch (e) { /* no-op */ }
+function extReq(op, args, timeoutMs) {
+  return new Promise(function (resolve) {
+    var id = "r" + (++extSeq), done = false;
+    extPending[id] = function (msg) { done = true; resolve(msg); };
+    try { window.postMessage({ type: "pfhub-req", id: id, op: op, args: args }, location.origin); }
+    catch (e) { resolve({ ok: false, error: "no-extension" }); return; }
+    setTimeout(function () { if (!done) { delete extPending[id]; resolve({ ok: false, error: "no-extension" }); } }, timeoutMs || 4000);
+  });
+}
+function sanitizeHtml(html) {
+  try { return new DOMParser().parseFromString(html || "", "text/html").body.textContent.trim(); }
+  catch (e) { return ""; }
+}
+function paradigmChips(text) {
+  var t = (text || "").toLowerCase(), chips = [];
+  if (/speed|spread|wpm/.test(t)) chips.push("speed ok");
+  if (/\blay\b|parent judge/.test(t)) chips.push("lay");
+  if (/\btech\b|\bflow\b/.test(t)) chips.push("flow");
+  if (/theory|disclosure|paraphras/.test(t)) chips.push("theory: check paradigm");
+  if (/kritik|\bk['s]* debate\b/.test(t)) chips.push("Ks");
+  if (/truth over tech/.test(t)) chips.push("truth over tech");
+  else if (/tech over truth/.test(t)) chips.push("tech over truth");
+  return chips;
+}
+function appendJudgeRecord(box, rows) {
+  var now = Date.now(), yearMs = 365 * 24 * 3600 * 1000;
+  var season = (rows || []).filter(function (r) { return r.roundDate && (now - new Date(r.roundDate).getTime()) < yearMs; });
+  if (!season.length) return;
+  var pro = 0, con = 0;
+  season.forEach(function (r) {
+    if (r.vote && r.affLabel && r.vote === r.affLabel) pro++;
+    else if (r.vote && r.negLabel && r.vote === r.negLabel) con++;
+  });
+  box.insertAdjacentHTML("beforeend", '<p class="sub">' + season.length + " rounds judged this season"
+    + ((pro || con) ? " &middot; " + pro + " Pro, " + con + " Con" : "") + ".</p>");
+}
+
+async function fillExtCards(d) {
+  var r = contextRound(d);
+  if (!r) return;
+  if (r.opponent && $("oppExt")) {
+    extReq("caselist", { q: r.opponent.code }).then(function (res) {
+      var box = $("oppExt"); if (!box) return;
+      if (res.ok) {
+        var teams = res.data || [];
+        box.innerHTML = teams.length ? teams.map(function (t) {
+          return '<p class="sub">' + esc(t.team_display_name || t.team || "") + " &middot; " + esc(t.title || "")
+            + (t.download_path ? ' <a href="https://opencaselist.com' + esc(t.download_path) + '" target="_blank" rel="noopener">Open</a>' : "") + "</p>";
+        }).join("") : '<p class="sub">No disclosed cases found.</p>';
+      } else if (res.error === "login") {
+        box.innerHTML = '<p class="sub">Log in to opencaselist.com in this browser, then refresh.</p>';
+      } else {
+        box.innerHTML = '<p class="sub">Install the hub helper extension to see caselist disclosure, or check '
+          + '<a href="https://opencaselist.com" target="_blank" rel="noopener">opencaselist.com</a> yourself.</p>';
+      }
+    });
+  }
+  (r.judges || []).forEach(function (j, i) {
+    var box = $("judgeExt" + i);
+    if (!box || !j.personId) return;
+    extReq("paradigm", { personId: j.personId }).then(function (res) {
+      if (res.ok) {
+        var data = res.data || {}, text = sanitizeHtml(data.paradigm), chips = paradigmChips(text);
+        box.innerHTML = (chips.length ? '<p class="chips-row">' + chips.map(function (c) { return '<span class="chip-tag">' + esc(c) + "</span>"; }).join("")
+          + ' <span class="sub">(rough guide)</span></p>' : "")
+          + '<details class="p-details"><summary>Full paradigm text</summary><p class="paradigm-text">' + esc(text || "(no paradigm on file)") + "</p></details>";
+        extReq("judgeRecord", { personId: j.personId }).then(function (rres) { if (rres.ok) appendJudgeRecord(box, rres.data); });
+      } else if (res.error === "login") {
+        box.innerHTML = '<p class="sub">Log in to Tabroom in this browser, then refresh.</p>';
+      } else {
+        box.innerHTML = '<p class="sub">Install the hub helper to see paradigms. <a href="https://www.tabroom.com/index/paradigm.mhtml?judge_person_id='
+          + esc(j.personId) + '" target="_blank" rel="noopener">View on Tabroom</a></p>';
+      }
+    });
+  });
+}
+
+/* ---------- Break calculator page ---------- */
+function renderBreak() {
+  var qp = new URLSearchParams(location.search);
+  $("app").innerHTML =
+    '<section class="ask"><h1>Break calculator</h1><form id="breakForm">'
+    + '<label for="bField">Field size</label><input id="bField" class="field" type="number" min="2" value="' + esc(qp.get("field") || "") + '">'
+    + '<label for="bPrelims">Prelim rounds</label><input id="bPrelims" class="field" type="number" min="1" value="' + esc(qp.get("prelims") || "") + '">'
+    + '<label for="bBreak">Break size <span>(teams that clear)</span></label><input id="bBreak" class="field" type="number" min="2" value="' + esc(qp.get("break") || "") + '">'
+    + '<label for="bWins">My current wins</label><input id="bWins" class="field" type="number" min="0" value="' + esc(qp.get("wins") || "0") + '">'
+    + '<label for="bDone">Rounds done</label><input id="bDone" class="field" type="number" min="0" value="' + esc(qp.get("done") || "0") + '">'
+    + '<div class="row"><button type="submit" class="go">Calculate</button></div></form></section>'
+    + '<section class="sec"><div id="breakStandaloneOut" class="card"><p class="sub">Enter field details above.</p></div></section>';
+
+  breakmathReady.then(function (bm) {
+    if (!$("bBreak").value && $("bField").value) $("bBreak").value = bm.defaultBreak(+$("bField").value);
+    function calc() {
+      var field = +$("bField").value, prelims = +$("bPrelims").value;
+      var size = +$("bBreak").value || bm.defaultBreak(field), wins = +$("bWins").value || 0, done = +$("bDone").value || 0;
+      if (!field || !prelims) { $("breakStandaloneOut").innerHTML = '<p class="err">Enter field size and prelim rounds.</p>'; return; }
+      var out = bm.simulate({ field: field, prelims: prelims, breakSize: size, myWins: wins, done: done, sims: 10000, seed: 1 });
+      $("breakStandaloneOut").innerHTML = breakOutHtml(out);
+    }
+    $("breakForm").addEventListener("submit", function (e) { e.preventDefault(); calc(); });
+    if (qp.get("field") && qp.get("prelims")) calc();
+  });
+}
+
+/* ---------- delegated events ---------- */
+document.addEventListener("click", function (e) {
+  var a;
+  if ((a = e.target.closest("a[data-nav]"))) { e.preventDefault(); nav(a.getAttribute("href")); return; }
+  if ((a = e.target.closest("[data-retry]"))) { route(); return; }
+  if ((a = e.target.closest("[data-state]"))) {
+    var s = a.getAttribute("data-state"); activeState = activeState === s ? null : s;
+    renderChips(); renderUpcoming(); return;
+  }
+  if ((a = e.target.closest("[data-unfollow]"))) {
+    follow.splice(+a.getAttribute("data-unfollow"), 1); saveFollow(); renderFollowing(); return;
+  }
+  if ((a = e.target.closest("[data-open-event]"))) { toggleEvent(a); return; }
+  if ((a = e.target.closest("[data-follow-entry]"))) {
+    var abbr = a.getAttribute("data-follow-abbr"), id = a.getAttribute("data-follow-entry");
+    var entries = fieldCache[abbr] || [], en = entries.find(function (x) { return String(x.id) === String(id); });
+    var rec = { tournId: currentTournId, tournName: currentTournName, abbr: abbr, entryId: id, entryName: en ? en.name : ("Entry " + id) };
+    if (followIdx(rec.tournId, rec.abbr, rec.entryId) < 0) { follow.push(rec); saveFollow(); }
+    nav("/t/" + currentTournId + "/e/" + abbr + "/entry/" + id);
+    return;
+  }
+  if ((a = e.target.closest("[data-follow-toggle]"))) {
+    var idx = followIdx(entryCtx.tournId, entryCtx.abbr, entryCtx.entryId);
+    if (idx >= 0) follow.splice(idx, 1);
+    else follow.push({ tournId: entryCtx.tournId, tournName: entryCtx.tournName, abbr: entryCtx.abbr, entryId: entryCtx.entryId, entryName: entryCtx.entryName });
+    saveFollow();
+    a.setAttribute("aria-pressed", String(idx < 0)); a.textContent = idx < 0 ? "Following" : "Follow";
+    return;
+  }
+  if ((a = e.target.closest("[data-share]"))) {
+    var url = location.href;
+    if (navigator.share) { navigator.share({ title: document.title, url: url }).catch(function () {}); }
+    else if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function () { say("Link copied."); }, function () { say("Couldn't copy the link."); });
+    } else say("Sharing isn't supported in this browser.");
+    return;
+  }
+});
+
+route();
+})();
+</script>
+</body>
+</html>

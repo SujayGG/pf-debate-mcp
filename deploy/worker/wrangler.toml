@@ -12,6 +12,11 @@ binding = "BACKEND"
 service_id = "01a0d4cc-89fb-7dc0-aa4a-b5f8f8bd8281"
 remote = true
 
+# Tournament hub: last good copy of Tabroom data, shown when Tabroom is down (hub/cache.js).
+[[kv_namespaces]]
+binding = "HUB_KV"
+id = "1f094adb7e194c639b136490109d17a6"
+
 [vars]
 BACKEND_URL = ""  # used only when the BACKEND binding above is absent
 KILL_SWITCH = "off"                                  # "on" pauses tool traffic (landing page stays up)
@@ -21,5 +26,5 @@ crons = ["0 */12 * * *"]  # keep the free Space from sleeping (it sleeps after 4
 
 [[rules]]
 type = "Text"
-globs = ["**/*.html"]
+globs = ["**/*.html", "**/breakmath.js"]
 fallthrough = true

@@ -2,7 +2,8 @@
 //
 //   student's AI app ──▶ this Worker ──▶ Hugging Face Space (BACKEND_URL) running `pf-debate-mcp serve-http`
 //
-// - "/" serves the landing page and "/app" the web app (bundled from landing.html and app.html).
+// - "/" and "/t/..." serve the tournament hub (hub.html + /t/api/* from hub/routes.js, Tabroom's public API);
+//   "/cards" is the card finder (app.html, "/app" redirects there) and "/about" the connector page (landing.html).
 // - "/api/*" is the web app's API (same health gate as /mcp).
 // - "/mcp" is proxied only after a quick health check, so a sleeping Space turns into a clear
 //   "waking up" message within ~8 s instead of a hang (the Space sleeps after 48 h without traffic).
@@ -13,6 +14,9 @@
 
 import LANDING from "./landing.html";
 import APP from "./app.html";
+import HUB from "./hub.html";
+import BREAKMATH from "./hub/breakmath.js"; // served to browsers as-is (Text rule in wrangler.toml)
+import { handleHub } from "./hub/routes.js";
 
 const HEALTH_TTL_MS = 60_000;
 
@@ -50,7 +54,15 @@ async function mcpError(request, message, status) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    const page = { "/": LANDING, "/index.html": LANDING, "/app": APP, "/app/": APP }[url.pathname];
+    if (url.pathname === "/app" || url.pathname === "/app/") return Response.redirect(new URL("/cards", url), 301);
+    if (url.pathname === "/hub/breakmath.js") {
+      return new Response(BREAKMATH, { headers: { "content-type": "text/javascript; charset=utf-8",
+                                                   "cache-control": "public, max-age=300" } });
+    }
+    const hub = await handleHub(request, env, ctx);
+    if (hub) return hub;
+    const isHubPage = ["/", "/index.html", "/break"].includes(url.pathname) || /^\/t\/\d+(\/|$)/.test(url.pathname);
+    const page = isHubPage ? HUB : { "/cards": APP, "/cards/": APP, "/about": LANDING }[url.pathname];
     if (page) {
       return new Response(page, {
         headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=300" },
